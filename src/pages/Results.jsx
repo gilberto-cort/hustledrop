@@ -9,9 +9,7 @@ import MatchAnalysisAnimation from '@/components/results/MatchAnalysisAnimation'
 import PrimaryMatchCard from '@/components/results/PrimaryMatchCard';
 import AltMatchCard from '@/components/results/AltMatchCard';
 import CompareMatchesModal from '@/components/results/CompareMatchesModal';
-import TieBreakerDialog from '@/components/results/TieBreakerDialog';
-import { getProfileForUser, getActiveModels, getOrCreateMatchResults, buildMatchView, selectBusiness } from '@/lib/matchService';
-import { findTieBreaker, applyTieBreaker, computeConfidence } from '@/lib/matchingEngine';
+import { selectBusiness } from '@/lib/matchService';
 
 export default function Results() {
   const { user } = useAuth();
@@ -19,8 +17,6 @@ export default function Results() {
   const [phase, setPhase] = useState('loading'); // loading | analyzing | ready | no-profile | empty
   const [matches, setMatches] = useState([]);
   const [confidence, setConfidence] = useState(null);
-  const [profile, setProfile] = useState(null);
-  const [tie, setTie] = useState(null);
   const [compareOpen, setCompareOpen] = useState(false);
   const [shared, setShared] = useState(false);
 
@@ -28,16 +24,27 @@ export default function Results() {
     trackEvent('result_viewed');
     (async () => {
       try {
-        const p = await getProfileForUser();
-        if (!p || !p.profile_complete) { setPhase('no-profile'); return; }
-        const models = await getActiveModels();
-        if (!models || models.length === 0) { setPhase('empty'); return; }
-        const { results } = await getOrCreateMatchResults(p, models);
-        const view = buildMatchView(results, models);
+        // The deterministic engine runs server-side: profile → hard filters →
+        // scoring → ranking → persisted MatchResults → top 3 returned.
+        const res = await base44.functions.invoke('matchEngine', {});
+        const data = res.data;
+        if (!data || data.status === 'no_profile') { setPhase('no-profile'); return; }
+
+        const view = (data.matches || []).map((m) => ({
+          result: { id: m.result_id, rank: m.rank },
+          model: m.business_model,
+          fit: m.personal_fit,
+          factors: (m.score_breakdown || {}).factors || {},
+          penalties: (m.score_breakdown || {}).penalties || [],
+          bonuses: (m.score_breakdown || {}).bonuses || [],
+          positives: m.positive_factors || [],
+          negatives: m.negative_factors || [],
+          rank: m.rank,
+        }));
         if (view.length === 0) { setPhase('empty'); return; }
-        setProfile(p);
+
         setMatches(view);
-        setConfidence(computeConfidence(p));
+        setConfidence(data.confidence);
         setPhase('analyzing');
       } catch (e) {
         setPhase('empty');
@@ -45,42 +52,13 @@ export default function Results() {
     })();
   }, []);
 
-  const handleAnalysisDone = () => {
-    setPhase('ready');
-    const t = findTieBreaker(matches[0], matches[1]);
-    if (t) {
-      setTimeout(() => {
-        setTie(t);
-        trackEvent('tie_breaker_presented', { business_model_id: matches[0].model.id });
-      }, 800);
-    }
-  };
-
-  const handleTieAnswer = async (chosenId) => {
-    const [a2, b2] = applyTieBreaker(matches[0], matches[1], tie.key, chosenId);
-    const ranked = a2.fit >= b2.fit ? [[a2, 1], [b2, 2]] : [[b2, 1], [a2, 2]];
-    try {
-      await base44.entities.MatchResult.bulkUpdate(ranked.map(([s, r]) => ({
-        id: s.result.id,
-        rank: r,
-        personal_fit: Math.round(s.fit),
-        tie_breaker_used: tie.key,
-      })));
-    } catch (e) { /* keep local result even if persist fails */ }
-    trackEvent('tie_breaker_completed', { business_model_id: chosenId });
-    setMatches((prev) => {
-      const rest = prev.slice(2);
-      const [first, second] = ranked.map(([s, r]) => ({ ...s, rank: r, fit: Math.round(s.fit) }));
-      return [first, second, ...rest];
-    });
-    setTie(null);
-  };
+  const handleAnalysisDone = () => setPhase('ready');
 
   const handleBuild = async () => {
     const primary = matches[0];
     try {
       await selectBusiness(user, primary);
-    } catch (e) { /* selection UI feedback is added with the Builder build */ }
+    } catch (e) { /* selection feedback is added with the Business Builder build */ }
     trackEvent('business_selected', { business_model_id: primary.model.id, rank: 1 });
     navigate('/build');
   };
@@ -177,7 +155,6 @@ export default function Results() {
       )}
 
       <CompareMatchesModal open={compareOpen} onOpenChange={setCompareOpen} matches={matches.slice(0, 3)} />
-      <TieBreakerDialog open={!!tie} onOpenChange={() => setTie(null)} tie={tie} onAnswer={handleTieAnswer} />
     </div>
   );
 }

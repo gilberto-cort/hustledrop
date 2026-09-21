@@ -49,6 +49,11 @@
       "type": "string",
       "description": "Tie-breaker dimension applied, if any"
     },
+    "tie_breaker_needed": {
+      "type": "boolean",
+      "default": false,
+      "description": "True when #1 and #2 finished within 3 Personal Fit points"
+    },
     "result_set_id": {
       "type": "string",
       "description": "Identifies one match run; rematches create a new set and preserve history"

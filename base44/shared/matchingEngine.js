@@ -1,5 +1,6 @@
-// Deterministic HustleMatch matching engine.
+// Deterministic HustleMatch matching engine — server-side shared module.
 // Pure functions — NO generative AI, no network calls, no side effects.
+// Single source of truth for eligibility, scoring, ranking and confidence.
 // Personal Fit measures COMPATIBILITY with a user's stated circumstances.
 // It is NOT a prediction of success, income or profitability.
 
@@ -25,6 +26,9 @@ const FAMILY_PREF = {
 // Assets that can substitute for each other for hard-requirement checks
 const ASSET_SUBSTITUTES = { camera_or_smartphone: ['camera', 'smartphone'] };
 
+// Factor weights — Budget 18, Skills 12, Time 12, Online/local 10, Sales 8,
+// Customer interaction 8, Physical 6, Business-model preference 8,
+// Primary priority 6, Interests 4, Speed-to-market 8. Total = 100.
 export const FACTOR_WEIGHTS = {
   budget: 0.18,
   skills: 0.12,
@@ -38,6 +42,8 @@ export const FACTOR_WEIGHTS = {
   interests: 0.04,
   speed: 0.08,
 };
+
+const TIE_POINT_GAP = 3;
 
 function clampFit(x) {
   return Math.max(1, Math.min(99, x));
@@ -53,9 +59,9 @@ function num(v, d = 1) {
 function budgetFit(budgetKey, m) {
   const max = BUDGET_MAX[budgetKey] ?? 500;
   const r = (m.startup_min || 0) / max;
-  if (r <= 0.6) return 1.0; // comfortably below budget — having more money than needed is never a negative
-  if (r <= 0.8) return 1.0 - ((r - 0.6) / 0.2) * 0.15; // ~80% → 0.85
-  if (r <= 1.0) return 0.85 - ((r - 0.8) / 0.2) * 0.15; // ~100% → 0.70
+  if (r <= 0.6) return 1.0; // comfortably below budget — extra money is never a negative
+  if (r <= 0.8) return 1.0 - ((r - 0.6) / 0.2) * 0.15; // ~80% of budget → 0.85
+  if (r <= 1.0) return 0.85 - ((r - 0.8) / 0.2) * 0.15; // ~equal to budget → 0.70
   return Math.max(0, 0.7 - ((r - 1.0) / 0.25) * 0.35); // 101–125% → ~0.35
 }
 
@@ -71,7 +77,7 @@ function skillFit(userSkills, m) {
   if (primary.length) score += 0.6 * Math.min(1, pMatch / Math.min(2, primary.length));
   if (secondary.length) score += 0.4 * Math.min(1, sMatch / Math.min(2, secondary.length));
   if (!primary.length) score = Math.min(1, sMatch / Math.min(2, secondary.length));
-  if (m.beginner_friendly) score = Math.max(score, 0.45);
+  if (m.beginner_friendly) score = Math.max(score, 0.45); // lack of match never auto-rejects beginner-friendly models
   return Math.max(0.1, score);
 }
 
@@ -104,7 +110,7 @@ function interactionFit(pref, m) {
 
 function physicalFromTolerance(tol, m) {
   const need = num(m.physical_intensity);
-  if (need <= tol) return 1.0; // tolerance is willingness, not preference — no bonus for liking it
+  if (need <= tol) return 1.0; // tolerance is willingness, not preference
   if (need === tol + 1) return 0.5;
   return 0;
 }
@@ -123,7 +129,7 @@ function interestFit(interests, m) {
   const tags = m.interest_tags || [];
   const matches = tags.filter((t) => user.includes(t)).length;
   if (matches === 0) return 0.35;
-  return Math.min(1, 0.6 + 0.2 * matches); // 1 match → 0.80, 2+ → 1.00
+  return Math.min(1, 0.6 + 0.2 * matches);
 }
 
 function objectiveFit(priority, m, interestScore) {
@@ -149,7 +155,7 @@ export function checkEligibility(profile, m) {
   const reasons = [];
   const budgetMax = BUDGET_MAX[profile.startup_budget] ?? 500;
 
-  // 1. Startup cost beyond 125% of budget (unless an admin-approved low-cost validation pathway exists)
+  // 1. startup_min > 125% of the user's maximum budget (unless admin-approved low-cost pathway)
   if ((m.startup_min || 0) > budgetMax * 1.25 && !m.low_cost_validation_pathway) {
     reasons.push('budget_exceeded');
   }
@@ -165,17 +171,16 @@ export function checkEligibility(profile, m) {
     if (!ok) reasons.push('required_asset_missing_' + req);
   }
 
-  // 4. Physical requirement exceeds stated tolerance by more than one level
+  // 4. Physical intensity exceeds stated tolerance by more than one level
   const tol = num(profile.physical_work_tolerance, 1);
   if (num(m.physical_intensity) > tol + 1) reasons.push('physical_tolerance_exceeded');
 
-  // 5. Known required credential the user does not possess
-  // (No seed models declare one yet; the hook stays for future models.)
+  // 5. Known required credential the user does not possess (hook for future models)
   if (m.required_credential && !(profile.credentials || []).includes(m.required_credential)) {
     reasons.push('credential_required');
   }
 
-  // 6. Weekly hour requirement exceeds 150% of availability
+  // 6. minimum_hours_week > 150% of available weekly hours
   const avail = HOURS_MAP[profile.weekly_hours] ?? 10;
   if ((m.minimum_hours_week || 0) > avail * 1.5) reasons.push('time_requirement_exceeded');
 
@@ -221,12 +226,11 @@ function collectBonuses(profile, m) {
   if (pMatch >= 2) b.push({ key: 'strong_skill_alignment', points: 3 });
   else if (pMatch === 1) b.push({ key: 'skill_alignment', points: 1.5 });
 
-  // Bonuses can never rescue an ineligible business and never exceed +6 combined
+  // Bonuses never exceed +6 combined and never rescue an ineligible business
   let total = b.reduce((s, x) => s + x.points, 0);
   if (total > 6) {
     const scale = 6 / total;
     b.forEach((x) => { x.points = Math.round(x.points * scale * 10) / 10; });
-    total = 6;
   }
   return b;
 }
@@ -260,7 +264,7 @@ export function scoreModel(profile, m) {
   const bonuses = collectBonuses(profile, m);
   const fit = recomputeFinal(factors, penalties, bonuses);
 
-  // Deterministic explainability — no AI invents reasons
+  // Deterministic explainability — derived from actual scoring data, never AI-invented
   const positives = [];
   const negatives = [];
   if (factors.budget >= 0.85) positives.push('budget_fit');
@@ -303,18 +307,18 @@ export function computeMatches(profile, models) {
   for (const m of (models || []).filter((x) => x.active !== false)) {
     const reasons = checkEligibility(profile, m);
     if (reasons.length > 0) {
-      filtered.push({ model: m, reasons });
+      filtered.push({ model: m, reasons }); // rejection reasons stored for debugging/admin analysis
       continue;
     }
     eligible.push(scoreModel(profile, m));
   }
-  // Stable deterministic ordering: fit desc, then name asc
+  // Stable deterministic ordering: fit desc, then name asc — never commercial considerations
   eligible.sort((a, b) => (b.fit - a.fit) || a.model.name.localeCompare(b.model.name));
   eligible.forEach((r, i) => { r.rank = i + 1; });
   return { eligible, filtered, confidence: computeConfidence(profile) };
 }
 
-// ---------- Match Confidence (information quality, not accuracy of prediction) ----------
+// ---------- Match Confidence (information quality — not scientific certainty) ----------
 
 export function computeConfidence(profile) {
   let score = 100;
@@ -330,71 +334,9 @@ export function computeConfidence(profile) {
   return { score, category };
 }
 
-// ---------- Tie detection & tie-breaker ----------
+// ---------- Tie detection ----------
+// Flag only — smart tie-breaker questions are implemented separately.
 
-const TIE_POINT_GAP = 3;
-
-export function findTieBreaker(m1, m2) {
-  if (!m1 || !m2 || Math.abs(m1.fit - m2.fit) > TIE_POINT_GAP) return null;
-  const a = m1.model, b = m2.model;
-
-  if (Math.abs(num(a.physical_intensity) - num(b.physical_intensity)) >= 2) {
-    const heavy = num(a.physical_intensity) > num(b.physical_intensity) ? a : b;
-    const light = heavy === a ? b : a;
-    return {
-      key: 'physical',
-      question: 'We found two very close matches. Which sounds less annoying to you?',
-      options: [
-        { modelId: light.id, text: `Mostly seated, screen-based work (${light.name})` },
-        { modelId: heavy.id, text: `Hands-on, physical work (${heavy.name})` },
-      ],
-    };
-  }
-  if (Math.abs(num(a.customer_interaction) - num(b.customer_interaction)) >= 2) {
-    const social = num(a.customer_interaction) > num(b.customer_interaction) ? a : b;
-    const quiet = social === a ? b : a;
-    return {
-      key: 'interaction',
-      question: 'Which sounds better day to day?',
-      options: [
-        { modelId: social.id, text: `Regular conversations with customers (${social.name})` },
-        { modelId: quiet.id, text: `Working mostly on your own (${quiet.name})` },
-      ],
-    };
-  }
-  if ((num(a.speed_to_first_sale) >= 4 && num(b.speed_to_first_sale) <= 2) ||
-      (num(b.speed_to_first_sale) >= 4 && num(a.speed_to_first_sale) <= 2)) {
-    const fast = num(a.speed_to_first_sale) > num(b.speed_to_first_sale) ? a : b;
-    const automated = fast === a ? b : a;
-    return {
-      key: 'speed',
-      question: 'Which matters more to you right now?',
-      options: [
-        { modelId: fast.id, text: `A faster path to a possible first sale (${fast.name})` },
-        { modelId: automated.id, text: `More room to automate over time (${automated.name})` },
-      ],
-    };
-  }
-  // No meaningful differentiator — keep deterministic ranking, force nothing
-  return null;
-}
-
-// Adjust ONLY the affected compatibility dimension, then recalculate the affected finals.
-export function applyTieBreaker(m1, m2, dimensionKey, chosenModelId) {
-  const chosen = m1.model.id === chosenModelId ? m1.model : m2.model;
-  const adjust = (s) => {
-    const factors = { ...s.factors };
-    if (dimensionKey === 'physical') {
-      const tol = Math.min(4, num(chosen.physical_intensity, 1));
-      factors.physical = physicalFromTolerance(tol, s.model);
-    } else if (dimensionKey === 'interaction') {
-      const cap = num(chosen.customer_interaction, 3);
-      factors.interaction = 1 - Math.abs(num(s.model.customer_interaction) - cap) / 4;
-    } else if (dimensionKey === 'speed') {
-      const want = num(chosen.speed_to_first_sale, 3);
-      factors.speed = 1 - Math.abs(num(s.model.speed_to_first_sale) - want) / 4;
-    }
-    return { ...s, factors, fit: recomputeFinal(factors, s.penalties, s.bonuses) };
-  };
-  return [adjust(m1), adjust(m2)];
+export function detectTie(eligible) {
+  return !!(eligible && eligible.length >= 2 && Math.abs(eligible[0].fit - eligible[1].fit) <= TIE_POINT_GAP);
 }

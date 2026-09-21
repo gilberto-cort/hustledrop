@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useState } from 'react';
 import { base44 } from '@/api/base44Client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -6,7 +6,6 @@ import { Label } from '@/components/ui/label';
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from '@/components/ui/select';
-import { computeMatches } from '@/lib/matchingEngine';
 
 const SINGLE_SELECTS = [
   ['startup_budget', 'Startup budget', [['0_50', '$0–$50'], ['51_250', '$51–$250'], ['251_500', '$251–$500'], ['501_1000', '$501–$1,000'], ['1001_plus', '$1,001+']]],
@@ -28,7 +27,7 @@ const ARRAY_FIELDS = [
 ];
 
 export default function MatchTester() {
-  const [models, setModels] = useState(null);
+  const [running, setRunning] = useState(false);
   const [result, setResult] = useState(null);
   const [form, setForm] = useState({
     startup_budget: '0_50',
@@ -46,23 +45,26 @@ export default function MatchTester() {
     assets: 'computer, smartphone',
   });
 
-  useEffect(() => {
-    base44.entities.BusinessModel.list('name', 500).then((rows) => setModels(rows || []));
-  }, []);
-
   const set = (k, v) => setForm((f) => ({ ...f, [k]: v }));
 
-  const run = () => {
-    const parseArr = (v) => (v || '').split(',').map((s) => s.trim()).filter(Boolean);
-    const profile = {
-      ...form,
-      sales_comfort: Number(form.sales_comfort),
-      physical_work_tolerance: Number(form.physical_work_tolerance),
-      skills: parseArr(form.skills),
-      interests: parseArr(form.interests),
-      assets: parseArr(form.assets),
-    };
-    setResult(computeMatches(profile, models));
+  const run = async () => {
+    setRunning(true);
+    try {
+      const parseArr = (v) => (v || '').split(',').map((s) => s.trim()).filter(Boolean);
+      const profile = {
+        ...form,
+        sales_comfort: Number(form.sales_comfort),
+        physical_work_tolerance: Number(form.physical_work_tolerance),
+        skills: parseArr(form.skills),
+        interests: parseArr(form.interests),
+        assets: parseArr(form.assets),
+      };
+      // Server-side engine, admin-only test mode — no records are saved
+      const res = await base44.functions.invoke('matchEngine', { test_profile: profile });
+      setResult(res.data);
+    } finally {
+      setRunning(false);
+    }
   };
 
   return (
@@ -99,14 +101,11 @@ export default function MatchTester() {
         </div>
         <Button
           onClick={run}
-          disabled={!models || models.length === 0}
+          disabled={running}
           className="mt-5 rounded-full bg-brand-gradient text-xs font-semibold text-white"
         >
-          RUN MATCH ENGINE
+          {running ? 'RUNNING…' : 'RUN MATCH ENGINE'}
         </Button>
-        {models && models.length === 0 && (
-          <p className="mt-3 text-xs text-destructive">No business models found — seed the catalog first.</p>
-        )}
       </div>
 
       {result && (
