@@ -1,0 +1,67 @@
+{
+  "name": "QuizResponse",
+  "type": "object",
+  "properties": {
+    "user_id": {
+      "type": "string",
+      "description": "Owner user id (blank for anonymous sessions)"
+    },
+    "session_id": {
+      "type": "string",
+      "description": "Anonymous session id used before account creation"
+    },
+    "question_key": {
+      "type": "string",
+      "description": "Stable identifier for the quiz question"
+    },
+    "answer": {
+      "type": "string",
+      "description": "Selected answer value"
+    }
+  },
+  "required": [
+    "question_key",
+    "answer"
+  ],
+  "rls": {
+    "read": {
+      "$or": [
+        {
+          "created_by_id": "{{user.id}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    },
+    "create": {
+      "created_by_id": "{{user.id}}"
+    },
+    "update": {
+      "$or": [
+        {
+          "created_by_id": "{{user.id}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    },
+    "delete": {
+      "$or": [
+        {
+          "created_by_id": "{{user.id}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    }
+  }
+}

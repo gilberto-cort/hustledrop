@@ -1,0 +1,35 @@
+{
+  "properties": {
+    "role": {
+      "type": "string",
+      "description": "The role of the user in the app",
+      "enum": [
+        "admin",
+        "user"
+      ]
+    },
+    "onboarding_status": {
+      "type": "string",
+      "description": "Where the user is in the HustleDrop onboarding flow",
+      "enum": [
+        "new",
+        "quiz_started",
+        "quiz_completed",
+        "dna_generated",
+        "matched",
+        "business_selected",
+        "building",
+        "launched"
+      ]
+    },
+    "selected_avatar_id": {
+      "type": "string",
+      "description": "Reference to the Avatar record chosen for this user's HustleDNA character"
+    }
+  },
+  "required": [
+    "role"
+  ],
+  "name": "User",
+  "type": "object"
+}

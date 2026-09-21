@@ -7,6 +7,23 @@ import { AuthProvider, useAuth } from '@/lib/AuthContext';
 import UserNotRegisteredError from '@/components/UserNotRegisteredError';
 import ScrollToTop from './components/ScrollToTop';
 // Add page imports here
+import Landing from '@/pages/Landing';
+import Discover from '@/pages/Discover';
+import Results from '@/pages/Results';
+import Dashboard from '@/pages/Dashboard';
+import Build from '@/pages/Build';
+import Launch from '@/pages/Launch';
+import Grow from '@/pages/Grow';
+import Admin from '@/pages/Admin';
+import Login from '@/pages/Login';
+import Register from '@/pages/Register';
+import ForgotPassword from '@/pages/ForgotPassword';
+import ResetPassword from '@/pages/ResetPassword';
+import ProtectedRoute from '@/components/ProtectedRoute';
+import AdminRoute from '@/components/AdminRoute';
+import AppLayout from '@/components/AppLayout';
+import AdminLayout from '@/components/AdminLayout';
+import { Navigate } from 'react-router-dom';
 
 const AuthenticatedApp = () => {
   const { isLoadingAuth, isLoadingPublicSettings, authError, navigateToLogin } = useAuth();
@@ -34,7 +51,28 @@ const AuthenticatedApp = () => {
   // Render the main app
   return (
     <Routes>
-      {/* Add your page Route elements here */}
+      <Route path="/login" element={<Login />} />
+      <Route path="/register" element={<Register />} />
+      <Route path="/forgot-password" element={<ForgotPassword />} />
+      <Route path="/reset-password" element={<ResetPassword />} />
+      <Route path="/" element={<Landing />} />
+      <Route element={<ProtectedRoute unauthenticatedElement={<Navigate to="/login" replace />} />}>
+        <Route element={<AppLayout />}>
+          <Route path="/discover" element={<Discover />} />
+          <Route path="/results" element={<Results />} />
+          <Route path="/dashboard" element={<Dashboard />} />
+          <Route path="/build" element={<Build />} />
+          <Route path="/launch" element={<Launch />} />
+          <Route path="/grow" element={<Grow />} />
+        </Route>
+      </Route>
+      <Route element={<ProtectedRoute unauthenticatedElement={<Navigate to="/login" replace />} />}>
+        <Route element={<AdminRoute />}>
+          <Route element={<AdminLayout />}>
+            <Route path="/admin" element={<Admin />} />
+          </Route>
+        </Route>
+      </Route>
       <Route path="*" element={<PageNotFound />} />
     </Routes>
   );

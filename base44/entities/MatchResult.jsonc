@@ -1,0 +1,96 @@
+{
+  "name": "MatchResult",
+  "type": "object",
+  "properties": {
+    "user_id": {
+      "type": "string",
+      "description": "Owner user id"
+    },
+    "profile_id": {
+      "type": "string",
+      "description": "HustleProfile used for this match run"
+    },
+    "business_model_id": {
+      "type": "string",
+      "description": "Matched BusinessModel id"
+    },
+    "rank": {
+      "type": "number",
+      "description": "Rank position in the result set"
+    },
+    "personal_fit": {
+      "type": "number",
+      "description": "0-100 personal fit score"
+    },
+    "match_confidence": {
+      "type": "number",
+      "description": "0-100 confidence in the match"
+    },
+    "score_breakdown": {
+      "type": "object",
+      "description": "Per-dimension score breakdown",
+      "additionalProperties": true
+    },
+    "positive_factors": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "negative_factors": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "tie_breaker_used": {
+      "type": "string",
+      "description": "Tie-breaker applied, if any"
+    }
+  },
+  "required": [
+    "user_id",
+    "business_model_id"
+  ],
+  "rls": {
+    "read": {
+      "$or": [
+        {
+          "created_by_id": "{{user.id}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    },
+    "create": {
+      "created_by_id": "{{user.id}}"
+    },
+    "update": {
+      "$or": [
+        {
+          "created_by_id": "{{user.id}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    },
+    "delete": {
+      "$or": [
+        {
+          "created_by_id": "{{user.id}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    }
+  }
+}

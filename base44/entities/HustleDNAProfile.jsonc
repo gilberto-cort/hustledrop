@@ -1,0 +1,119 @@
+{
+  "name": "HustleDNAProfile",
+  "type": "object",
+  "properties": {
+    "user_id": {
+      "type": "string",
+      "description": "Owner user id"
+    },
+    "hustler_score": {
+      "type": "number"
+    },
+    "digital_builder_score": {
+      "type": "number"
+    },
+    "creator_score": {
+      "type": "number"
+    },
+    "connector_score": {
+      "type": "number"
+    },
+    "operator_score": {
+      "type": "number"
+    },
+    "builder_score": {
+      "type": "number"
+    },
+    "primary_type": {
+      "type": "string",
+      "description": "Dominant DNA type"
+    },
+    "secondary_type": {
+      "type": "string",
+      "description": "Secondary DNA type"
+    },
+    "supporting_type": {
+      "type": "string",
+      "description": "Supporting DNA type"
+    },
+    "hustle_code": {
+      "type": "string",
+      "description": "Compact code representing the DNA mix"
+    },
+    "revenue_tempo": {
+      "type": "string"
+    },
+    "work_mode": {
+      "type": "string"
+    },
+    "social_energy": {
+      "type": "string"
+    },
+    "growth_style": {
+      "type": "string"
+    },
+    "selling_style": {
+      "type": "string"
+    },
+    "risk_approach": {
+      "type": "string"
+    },
+    "strengths": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "traps": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    }
+  },
+  "required": [
+    "user_id",
+    "primary_type"
+  ],
+  "rls": {
+    "read": {
+      "$or": [
+        {
+          "created_by_id": "{{user.id}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    },
+    "create": {
+      "created_by_id": "{{user.id}}"
+    },
+    "update": {
+      "$or": [
+        {
+          "created_by_id": "{{user.id}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    },
+    "delete": {
+      "$or": [
+        {
+          "created_by_id": "{{user.id}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    }
+  }
+}

@@ -1,0 +1,200 @@
+{
+  "name": "BusinessModel",
+  "type": "object",
+  "properties": {
+    "name": {
+      "type": "string",
+      "description": "Display name of the business model"
+    },
+    "slug": {
+      "type": "string",
+      "description": "URL-safe unique slug"
+    },
+    "family": {
+      "type": "string",
+      "description": "High-level family grouping"
+    },
+    "description": {
+      "type": "string",
+      "description": "Short plain-language description"
+    },
+    "startup_min": {
+      "type": "number",
+      "description": "Minimum startup cost (USD)"
+    },
+    "startup_max": {
+      "type": "number",
+      "description": "Maximum startup cost (USD)"
+    },
+    "speed_to_first_sale": {
+      "type": "string",
+      "description": "Typical time to first sale"
+    },
+    "online_score": {
+      "type": "number",
+      "description": "0-100 online orientation"
+    },
+    "local_score": {
+      "type": "number",
+      "description": "0-100 local/in-person orientation"
+    },
+    "physical_intensity": {
+      "type": "number",
+      "description": "0-100 physical effort required"
+    },
+    "sales_intensity": {
+      "type": "number",
+      "description": "0-100 sales effort required"
+    },
+    "customer_interaction": {
+      "type": "number",
+      "description": "0-100 customer interaction level"
+    },
+    "technical_skill": {
+      "type": "number",
+      "description": "0-100 technical skill required"
+    },
+    "creative_skill": {
+      "type": "number",
+      "description": "0-100 creative skill required"
+    },
+    "organization_skill": {
+      "type": "number",
+      "description": "0-100 organizational skill required"
+    },
+    "minimum_hours_week": {
+      "type": "number",
+      "description": "Minimum hours per week to sustain"
+    },
+    "weekend_friendly": {
+      "type": "boolean",
+      "default": false
+    },
+    "solo_friendly": {
+      "type": "boolean",
+      "default": false
+    },
+    "camera_required": {
+      "type": "boolean",
+      "default": false
+    },
+    "vehicle_required": {
+      "type": "boolean",
+      "default": false
+    },
+    "automation_potential": {
+      "type": "number",
+      "description": "0-100 automation potential"
+    },
+    "recurring_revenue_potential": {
+      "type": "number",
+      "description": "0-100 recurring revenue potential"
+    },
+    "scalability": {
+      "type": "number",
+      "description": "0-100 scalability"
+    },
+    "regulatory_complexity": {
+      "type": "number",
+      "description": "0-100 regulatory complexity"
+    },
+    "beginner_friendly": {
+      "type": "boolean",
+      "default": false
+    },
+    "income_model": {
+      "type": "string",
+      "description": "How this model earns"
+    },
+    "typical_offer_type": {
+      "type": "string",
+      "description": "Typical offer delivered to customers"
+    },
+    "primary_skills": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "secondary_skills": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "interest_tags": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "required_assets": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "hard_requirements": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "friction_reasons": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "validation_status": {
+      "type": "string",
+      "description": "Validation status of the model entry"
+    },
+    "first_validation_action": {
+      "type": "string",
+      "description": "First concrete action to validate the model"
+    },
+    "compatible_dna_primary": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "compatible_dna_secondary": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "active": {
+      "type": "boolean",
+      "default": true
+    },
+    "verified_date": {
+      "type": "string",
+      "format": "date"
+    }
+  },
+  "required": [
+    "name",
+    "slug"
+  ],
+  "rls": {
+    "read": {},
+    "create": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "update": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}

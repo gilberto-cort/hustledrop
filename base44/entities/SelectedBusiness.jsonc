@@ -1,0 +1,77 @@
+{
+  "name": "SelectedBusiness",
+  "type": "object",
+  "properties": {
+    "user_id": {
+      "type": "string",
+      "description": "Owner user id"
+    },
+    "business_model_id": {
+      "type": "string",
+      "description": "Chosen BusinessModel id"
+    },
+    "match_result_id": {
+      "type": "string",
+      "description": "MatchResult that led to this selection"
+    },
+    "status": {
+      "type": "string",
+      "description": "Selection status",
+      "enum": [
+        "selected",
+        "building",
+        "launched",
+        "archived"
+      ]
+    },
+    "selected_at": {
+      "type": "string",
+      "format": "date-time"
+    }
+  },
+  "required": [
+    "user_id",
+    "business_model_id"
+  ],
+  "rls": {
+    "read": {
+      "$or": [
+        {
+          "created_by_id": "{{user.id}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    },
+    "create": {
+      "created_by_id": "{{user.id}}"
+    },
+    "update": {
+      "$or": [
+        {
+          "created_by_id": "{{user.id}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    },
+    "delete": {
+      "$or": [
+        {
+          "created_by_id": "{{user.id}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    }
+  }
+}

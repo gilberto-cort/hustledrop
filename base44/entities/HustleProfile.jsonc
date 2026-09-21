@@ -1,0 +1,120 @@
+{
+  "name": "HustleProfile",
+  "type": "object",
+  "properties": {
+    "user_id": {
+      "type": "string",
+      "description": "Owner user id"
+    },
+    "startup_budget": {
+      "type": "string",
+      "description": "Available startup budget range"
+    },
+    "speed_preference": {
+      "type": "string",
+      "description": "Preferred speed to first sale"
+    },
+    "weekly_hours": {
+      "type": "number",
+      "description": "Hours per week available"
+    },
+    "work_location_preference": {
+      "type": "string",
+      "description": "Preferred work location"
+    },
+    "sales_comfort": {
+      "type": "string",
+      "description": "Comfort level with selling"
+    },
+    "customer_interaction_preference": {
+      "type": "string",
+      "description": "Preferred level of customer interaction"
+    },
+    "skills": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Self-reported skills"
+    },
+    "business_model_preference": {
+      "type": "string",
+      "description": "Preferred business model family"
+    },
+    "physical_work_tolerance": {
+      "type": "string",
+      "description": "Tolerance for physical work"
+    },
+    "income_goal": {
+      "type": "string",
+      "description": "Target income outcome"
+    },
+    "primary_priority": {
+      "type": "string",
+      "description": "Primary priority driver"
+    },
+    "interests": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Interest areas"
+    },
+    "assets": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Available assets (vehicle, camera, etc.)"
+    },
+    "profile_complete": {
+      "type": "boolean",
+      "default": false,
+      "description": "Whether the profile is complete enough to match"
+    }
+  },
+  "required": [
+    "user_id"
+  ],
+  "rls": {
+    "read": {
+      "$or": [
+        {
+          "created_by_id": "{{user.id}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    },
+    "create": {
+      "created_by_id": "{{user.id}}"
+    },
+    "update": {
+      "$or": [
+        {
+          "created_by_id": "{{user.id}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    },
+    "delete": {
+      "$or": [
+        {
+          "created_by_id": "{{user.id}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    }
+  }
+}

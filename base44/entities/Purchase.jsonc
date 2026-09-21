@@ -1,0 +1,76 @@
+{
+  "name": "Purchase",
+  "type": "object",
+  "properties": {
+    "user_id": {
+      "type": "string",
+      "description": "Owner user id"
+    },
+    "product_key": {
+      "type": "string",
+      "description": "Identifier of the purchased product"
+    },
+    "amount": {
+      "type": "number",
+      "description": "Charged amount in the smallest unit"
+    },
+    "currency": {
+      "type": "string",
+      "description": "ISO currency code"
+    },
+    "payment_provider": {
+      "type": "string",
+      "description": "Provider used (e.g. stripe, wix_payments)"
+    },
+    "provider_transaction_id": {
+      "type": "string",
+      "description": "Provider-side transaction reference"
+    },
+    "status": {
+      "type": "string",
+      "description": "Purchase status",
+      "enum": [
+        "pending",
+        "completed",
+        "failed",
+        "refunded"
+      ]
+    }
+  },
+  "required": [
+    "user_id",
+    "product_key",
+    "amount",
+    "currency",
+    "status"
+  ],
+  "rls": {
+    "read": {
+      "$or": [
+        {
+          "created_by_id": "{{user.id}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    },
+    "create": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "update": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}

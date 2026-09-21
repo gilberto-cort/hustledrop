@@ -1,0 +1,48 @@
+{
+  "name": "Avatar",
+  "type": "object",
+  "properties": {
+    "dna_type": {
+      "type": "string",
+      "description": "DNA type this avatar represents"
+    },
+    "presentation": {
+      "type": "string",
+      "description": "Visual presentation style"
+    },
+    "sprite_asset": {
+      "type": "string",
+      "description": "Sprite asset URL (pixel-art/RPG styling added later)"
+    },
+    "display_name": {
+      "type": "string",
+      "description": "Display name for the avatar"
+    },
+    "active": {
+      "type": "boolean",
+      "default": true
+    }
+  },
+  "required": [
+    "dna_type",
+    "display_name"
+  ],
+  "rls": {
+    "read": {},
+    "create": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "update": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}

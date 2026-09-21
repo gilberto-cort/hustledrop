@@ -1,0 +1,75 @@
+{
+  "name": "Referral",
+  "type": "object",
+  "properties": {
+    "referrer_user_id": {
+      "type": "string",
+      "description": "User who referred"
+    },
+    "referred_user_id": {
+      "type": "string",
+      "description": "User who was referred"
+    },
+    "referral_code": {
+      "type": "string",
+      "description": "Code used for the referral"
+    },
+    "status": {
+      "type": "string",
+      "description": "Referral status",
+      "enum": [
+        "pending",
+        "completed",
+        "invalid"
+      ]
+    },
+    "reward_status": {
+      "type": "string",
+      "description": "Reward status",
+      "enum": [
+        "none",
+        "pending",
+        "granted",
+        "denied"
+      ]
+    }
+  },
+  "required": [
+    "referrer_user_id",
+    "referral_code"
+  ],
+  "rls": {
+    "read": {
+      "$or": [
+        {
+          "created_by_id": "{{user.id}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    },
+    "create": {
+      "created_by_id": "{{user.id}}"
+    },
+    "update": {
+      "$or": [
+        {
+          "created_by_id": "{{user.id}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}

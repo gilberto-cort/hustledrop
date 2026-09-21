@@ -1,0 +1,97 @@
+{
+  "name": "GeneratedModule",
+  "type": "object",
+  "properties": {
+    "business_build_id": {
+      "type": "string",
+      "description": "BusinessBuild this module belongs to"
+    },
+    "module_type": {
+      "type": "string",
+      "description": "Type of generated module (brand, offer, copy, etc.)"
+    },
+    "version": {
+      "type": "number",
+      "description": "Generation version"
+    },
+    "status": {
+      "type": "string",
+      "description": "Module status",
+      "enum": [
+        "draft",
+        "generated",
+        "approved",
+        "rejected",
+        "superseded"
+      ]
+    },
+    "structured_output": {
+      "type": "object",
+      "description": "AI-generated structured content",
+      "additionalProperties": true
+    },
+    "source_context": {
+      "type": "object",
+      "description": "Inputs used to generate this module",
+      "additionalProperties": true
+    },
+    "user_edits": {
+      "type": "object",
+      "description": "User-applied edits on top of generated output",
+      "additionalProperties": true
+    },
+    "generated_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "approved_at": {
+      "type": "string",
+      "format": "date-time"
+    }
+  },
+  "required": [
+    "business_build_id",
+    "module_type"
+  ],
+  "rls": {
+    "read": {
+      "$or": [
+        {
+          "created_by_id": "{{user.id}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    },
+    "create": {
+      "created_by_id": "{{user.id}}"
+    },
+    "update": {
+      "$or": [
+        {
+          "created_by_id": "{{user.id}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    },
+    "delete": {
+      "$or": [
+        {
+          "created_by_id": "{{user.id}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    }
+  }
+}

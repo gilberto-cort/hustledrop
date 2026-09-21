@@ -1,0 +1,75 @@
+{
+  "name": "BusinessBuild",
+  "type": "object",
+  "properties": {
+    "user_id": {
+      "type": "string",
+      "description": "Owner user id"
+    },
+    "selected_business_id": {
+      "type": "string",
+      "description": "SelectedBusiness being built"
+    },
+    "business_name": {
+      "type": "string",
+      "description": "Working name for the business"
+    },
+    "brand_status": {
+      "type": "string",
+      "description": "Brand concept status"
+    },
+    "overall_progress": {
+      "type": "number",
+      "description": "0-100 build progress"
+    },
+    "current_stage": {
+      "type": "string",
+      "description": "Current build stage"
+    }
+  },
+  "required": [
+    "user_id",
+    "selected_business_id"
+  ],
+  "rls": {
+    "read": {
+      "$or": [
+        {
+          "created_by_id": "{{user.id}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    },
+    "create": {
+      "created_by_id": "{{user.id}}"
+    },
+    "update": {
+      "$or": [
+        {
+          "created_by_id": "{{user.id}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    },
+    "delete": {
+      "$or": [
+        {
+          "created_by_id": "{{user.id}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    }
+  }
+}

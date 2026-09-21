@@ -1,0 +1,84 @@
+{
+  "name": "LaunchTask",
+  "type": "object",
+  "properties": {
+    "business_build_id": {
+      "type": "string",
+      "description": "BusinessBuild this task belongs to"
+    },
+    "title": {
+      "type": "string"
+    },
+    "description": {
+      "type": "string"
+    },
+    "stage": {
+      "type": "string",
+      "description": "Launch stage this task belongs to"
+    },
+    "display_order": {
+      "type": "number"
+    },
+    "required": {
+      "type": "boolean",
+      "default": true
+    },
+    "verification_required": {
+      "type": "boolean",
+      "default": false
+    },
+    "completed": {
+      "type": "boolean",
+      "default": false
+    },
+    "completed_at": {
+      "type": "string",
+      "format": "date-time"
+    }
+  },
+  "required": [
+    "business_build_id",
+    "title"
+  ],
+  "rls": {
+    "read": {
+      "$or": [
+        {
+          "created_by_id": "{{user.id}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    },
+    "create": {
+      "created_by_id": "{{user.id}}"
+    },
+    "update": {
+      "$or": [
+        {
+          "created_by_id": "{{user.id}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    },
+    "delete": {
+      "$or": [
+        {
+          "created_by_id": "{{user.id}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    }
+  }
+}
