@@ -8,64 +8,64 @@
     },
     "startup_budget": {
       "type": "string",
-      "description": "Available startup budget range"
+      "description": "Normalized startup budget range (e.g. 0_50, 51_250, 251_500, 501_1000, 1001_plus)"
     },
     "speed_preference": {
       "type": "string",
-      "description": "Preferred speed to first sale"
+      "description": "Normalized preferred speed to first sale"
     },
     "weekly_hours": {
-      "type": "number",
-      "description": "Hours per week available"
+      "type": "string",
+      "description": "Normalized weekly availability range (lt_5, 5_10, 11_20, 20_plus)"
     },
     "work_location_preference": {
       "type": "string",
-      "description": "Preferred work location"
+      "description": "Preferred work location (online, local_in_person, either)"
     },
     "sales_comfort": {
-      "type": "string",
-      "description": "Comfort level with selling"
+      "type": "number",
+      "description": "1 = strongly dislikes, 2 = limited, 3 = comfortable, 4 = enjoys"
     },
     "customer_interaction_preference": {
       "type": "string",
-      "description": "Preferred level of customer interaction"
+      "description": "Preferred customer interaction level (minimal, some, indifferent, high)"
     },
     "skills": {
       "type": "array",
       "items": {
         "type": "string"
       },
-      "description": "Self-reported skills"
+      "description": "Self-reported skills (normalized values)"
     },
     "business_model_preference": {
       "type": "string",
-      "description": "Preferred business model family"
+      "description": "Preferred business model family (service, digital, product, rental, content, no_preference)"
     },
     "physical_work_tolerance": {
-      "type": "string",
-      "description": "Tolerance for physical work"
+      "type": "number",
+      "description": "1 = none, 2 = light, 3 = moderate, 4 = heavy"
     },
     "income_goal": {
       "type": "string",
-      "description": "Target income outcome"
+      "description": "Normalized monthly income goal range"
     },
     "primary_priority": {
       "type": "string",
-      "description": "Primary priority driver"
+      "description": "Primary priority driver (speed, cost, flexibility, automation, scale, enjoyment)"
     },
     "interests": {
       "type": "array",
       "items": {
         "type": "string"
       },
-      "description": "Interest areas"
+      "description": "Interest areas (normalized values)"
     },
     "assets": {
       "type": "array",
       "items": {
         "type": "string"
       },
-      "description": "Available assets (vehicle, camera, etc.)"
+      "description": "Available assets (normalized values; 'none' when nothing applies)"
     },
     "profile_complete": {
       "type": "boolean",

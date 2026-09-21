@@ -8,18 +8,25 @@
     },
     "session_id": {
       "type": "string",
-      "description": "Anonymous session id used before account creation"
+      "description": "Quiz session id (anonymous or authenticated)"
     },
     "question_key": {
       "type": "string",
       "description": "Stable identifier for the quiz question"
     },
     "answer": {
-      "type": "string",
-      "description": "Selected answer value"
+      "type": [
+        "string",
+        "array"
+      ],
+      "items": {
+        "type": "string"
+      },
+      "description": "Selected normalized answer value(s); array for multi-select questions"
     }
   },
   "required": [
+    "session_id",
     "question_key",
     "answer"
   ],

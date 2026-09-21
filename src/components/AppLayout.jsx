@@ -12,7 +12,7 @@ const NAV = [
 ];
 
 export default function AppLayout() {
-  const { user, logout } = useAuth();
+  const { user, isAuthenticated, logout } = useAuth();
   const location = useLocation();
 
   return (
@@ -32,13 +32,22 @@ export default function AppLayout() {
                 Admin
               </Link>
             )}
-            <button
-              onClick={() => logout()}
-              className="flex items-center gap-1.5 rounded-full border border-white/10 px-3 py-1.5 text-xs font-medium text-muted-foreground transition hover:text-foreground"
-            >
-              <LogOut className="h-3.5 w-3.5" />
-              <span className="hidden sm:inline">Sign out</span>
-            </button>
+            {isAuthenticated ? (
+              <button
+                onClick={() => logout()}
+                className="flex items-center gap-1.5 rounded-full border border-white/10 px-3 py-1.5 text-xs font-medium text-muted-foreground transition hover:text-foreground"
+              >
+                <LogOut className="h-3.5 w-3.5" />
+                <span className="hidden sm:inline">Sign out</span>
+              </button>
+            ) : (
+              <Link
+                to="/login"
+                className="rounded-full border border-white/10 px-3 py-1.5 text-xs font-medium text-muted-foreground transition hover:text-foreground"
+              >
+                Sign in
+              </Link>
+            )}
           </div>
         </div>
         <nav className="mx-auto max-w-6xl overflow-x-auto px-4 sm:px-6 scrollbar-none">
