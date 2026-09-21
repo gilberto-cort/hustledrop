@@ -16,36 +16,42 @@
     },
     "rank": {
       "type": "number",
-      "description": "Rank position in the result set"
+      "description": "Rank position in the result set (1-3)"
     },
     "personal_fit": {
       "type": "number",
-      "description": "0-100 personal fit score"
+      "description": "Compatibility with the user's stated circumstances, 1-99. NOT a probability of success."
     },
     "match_confidence": {
       "type": "number",
-      "description": "0-100 confidence in the match"
+      "description": "How much useful information the user supplied, 40-100"
     },
     "score_breakdown": {
       "type": "object",
-      "description": "Per-dimension score breakdown",
+      "description": "Deterministic factor scores, base score, penalties, bonuses and unrounded fit",
       "additionalProperties": true
     },
     "positive_factors": {
       "type": "array",
       "items": {
         "type": "string"
-      }
+      },
+      "description": "Deterministic positive factor tokens"
     },
     "negative_factors": {
       "type": "array",
       "items": {
         "type": "string"
-      }
+      },
+      "description": "Deterministic negative factor tokens"
     },
     "tie_breaker_used": {
       "type": "string",
-      "description": "Tie-breaker applied, if any"
+      "description": "Tie-breaker dimension applied, if any"
+    },
+    "result_set_id": {
+      "type": "string",
+      "description": "Identifies one match run; rematches create a new set and preserve history"
     }
   },
   "required": [

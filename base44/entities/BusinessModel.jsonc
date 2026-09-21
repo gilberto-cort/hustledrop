@@ -12,7 +12,7 @@
     },
     "family": {
       "type": "string",
-      "description": "High-level family grouping"
+      "description": "High-level family grouping (Digital Services, Creative, Knowledge, Content, Local Services, Home Services, Events, Rental, Products)"
     },
     "description": {
       "type": "string",
@@ -27,40 +27,40 @@
       "description": "Maximum startup cost (USD)"
     },
     "speed_to_first_sale": {
-      "type": "string",
-      "description": "Typical time to first sale"
+      "type": "number",
+      "description": "Relative speed to a possible first sale, 1 (slow build) to 5 (very fast). Not a guarantee."
     },
     "online_score": {
       "type": "number",
-      "description": "0-100 online orientation"
+      "description": "Online orientation, 1-5"
     },
     "local_score": {
       "type": "number",
-      "description": "0-100 local/in-person orientation"
+      "description": "Local/in-person orientation, 1-5"
     },
     "physical_intensity": {
       "type": "number",
-      "description": "0-100 physical effort required"
+      "description": "Physical effort required, 1-5"
     },
     "sales_intensity": {
       "type": "number",
-      "description": "0-100 sales effort required"
+      "description": "Sales effort required, 1-5"
     },
     "customer_interaction": {
       "type": "number",
-      "description": "0-100 customer interaction level"
+      "description": "Customer interaction level, 1-5"
     },
     "technical_skill": {
       "type": "number",
-      "description": "0-100 technical skill required"
+      "description": "Technical skill required, 1-5"
     },
     "creative_skill": {
       "type": "number",
-      "description": "0-100 creative skill required"
+      "description": "Creative skill required, 1-5"
     },
     "organization_skill": {
       "type": "number",
-      "description": "0-100 organizational skill required"
+      "description": "Organizational skill required, 1-5"
     },
     "minimum_hours_week": {
       "type": "number",
@@ -84,23 +84,28 @@
     },
     "automation_potential": {
       "type": "number",
-      "description": "0-100 automation potential"
+      "description": "Automation potential, 1-5"
     },
     "recurring_revenue_potential": {
       "type": "number",
-      "description": "0-100 recurring revenue potential"
+      "description": "Recurring revenue potential, 1-5"
     },
     "scalability": {
       "type": "number",
-      "description": "0-100 scalability"
+      "description": "Scalability, 1-5"
     },
     "regulatory_complexity": {
       "type": "number",
-      "description": "0-100 regulatory complexity"
+      "description": "Regulatory complexity, 1-5"
     },
     "beginner_friendly": {
       "type": "boolean",
-      "default": false
+      "default": false,
+      "description": "Derived: beginner_friendly_score >= 4"
+    },
+    "beginner_friendly_score": {
+      "type": "number",
+      "description": "Beginner-friendliness, 1 (steep) to 5 (very approachable)"
     },
     "income_model": {
       "type": "string",
@@ -114,57 +119,78 @@
       "type": "array",
       "items": {
         "type": "string"
-      }
+      },
+      "description": "Primary skill tags (standardized taxonomy)"
     },
     "secondary_skills": {
       "type": "array",
       "items": {
         "type": "string"
-      }
+      },
+      "description": "Secondary skill tags (standardized taxonomy)"
     },
     "interest_tags": {
       "type": "array",
       "items": {
         "type": "string"
-      }
+      },
+      "description": "Interest tags (standardized taxonomy)"
     },
     "required_assets": {
       "type": "array",
       "items": {
         "type": "string"
-      }
+      },
+      "description": "Assets the business typically uses"
     },
     "hard_requirements": {
       "type": "array",
       "items": {
         "type": "string"
-      }
+      },
+      "description": "Assets genuinely required with no practical substitute (asset keys, e.g. camera_or_smartphone)"
     },
     "friction_reasons": {
       "type": "array",
       "items": {
         "type": "string"
-      }
+      },
+      "description": "Standardized friction tags"
     },
     "validation_status": {
       "type": "string",
-      "description": "Validation status of the model entry"
+      "description": "Validation status: GREEN, YELLOW or RED"
+    },
+    "verification_warning": {
+      "type": "string",
+      "description": "General verification warning shown with results when applicable"
     },
     "first_validation_action": {
       "type": "string",
       "description": "First concrete action to validate the model"
     },
+    "required_credential": {
+      "type": "string",
+      "description": "Known required credential, if any (future use)"
+    },
+    "low_cost_validation_pathway": {
+      "type": "boolean",
+      "default": false,
+      "description": "Admin-approved low-cost validation pathway (exempts from the budget hard filter)"
+    },
     "compatible_dna_primary": {
       "type": "array",
       "items": {
         "type": "string"
-      }
+      },
+      "description": "Primary compatible HustleDNA types (used from Build 04)"
     },
     "compatible_dna_secondary": {
       "type": "array",
       "items": {
         "type": "string"
-      }
+      },
+      "description": "Secondary compatible HustleDNA types (used from Build 04)"
     },
     "active": {
       "type": "boolean",

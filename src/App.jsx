@@ -23,6 +23,8 @@ import ProtectedRoute from '@/components/ProtectedRoute';
 import AdminRoute from '@/components/AdminRoute';
 import AppLayout from '@/components/AppLayout';
 import AdminLayout from '@/components/AdminLayout';
+import AdminMatches from '@/pages/admin/AdminMatches';
+import MatchTester from '@/pages/admin/MatchTester';
 import { Navigate } from 'react-router-dom';
 
 const AuthenticatedApp = () => {
@@ -72,6 +74,8 @@ const AuthenticatedApp = () => {
         <Route element={<AdminRoute />}>
           <Route element={<AdminLayout />}>
             <Route path="/admin" element={<Admin />} />
+            <Route path="/admin/matches" element={<AdminMatches />} />
+            <Route path="/admin/match-tester" element={<MatchTester />} />
           </Route>
         </Route>
       </Route>
