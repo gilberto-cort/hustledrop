@@ -58,9 +58,13 @@ export default async function(req) {
       });
     } catch (e) {
       // Logged server-side with the module + error so AI/schema failures are
-      // diagnosable from the function logs — never silent.
-      console.error('[builderGenerate] LLM failed for module=' + module_type, e);
-      return Response.json({ status: 'generation_error', error: e.message });
+      // diagnosable from the function logs — never silent. transient=true
+      // means one client retry is reasonable; permanent failures (schema or
+      // provider rejections) are never retried.
+      const msg = String((e && e.message) || e);
+      const transient = /timeout|timed out|temporarily|rate.?limit|overloaded|try again|econnreset|503|429/i.test(msg);
+      console.error('[builderGenerate] LLM failed for module=' + module_type + (transient ? ' (transient)' : ' (permanent)'), e);
+      return Response.json({ status: 'generation_error', error: msg, transient });
     }
 
     // Persist as a NEW draft version — previous versions are never deleted or

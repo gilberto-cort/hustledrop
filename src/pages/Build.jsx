@@ -232,7 +232,14 @@ export default function Build() {
 
   const runGeneration = async (moduleKey, options) => {
     let res = await safeGenerate(moduleKey, options);
-    if (res && (res.status === 'generation_error' || res.status === 'client_error')) {
+    // Retry ONCE, and only for transient failures — client_error (network or
+    // invocation failure) or a server-reported transient LLM error. Permanent
+    // generation errors never auto-retry.
+    if (
+      res &&
+      (res.status === 'client_error' ||
+        (res.status === 'generation_error' && res.transient !== false))
+    ) {
       await new Promise((r) => setTimeout(r, 800));
       res = await safeGenerate(moduleKey, options);
     }

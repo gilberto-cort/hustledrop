@@ -57,7 +57,10 @@ export async function loadBuilderContext(base44, module_type, userId) {
   const profile = profiles && profiles[0];
   if (!profile || !profile.profile_complete) return { error: 'no_profile' };
 
-  const selections = await base44.entities.SelectedBusiness.filter({ user_id: userId }, '-created_date', 10);
+  // ACTIVE = most recently SELECTED (selected_at), matching the client. Never
+  // created_date — after a switch-back the newest record can be a different
+  // business, which would scope generation to the wrong selection.
+  const selections = await base44.entities.SelectedBusiness.filter({ user_id: userId }, '-selected_at', 10);
   const selection = selections && selections[0];
   if (!selection) return { error: 'no_selection' };
 
