@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { trackEvent } from '@/lib/analytics';
 import EmptyState from '@/components/EmptyState';
@@ -6,6 +6,10 @@ import { Briefcase, ArrowRight, RotateCcw, Check } from 'lucide-react';
 import {
   BUILD_MODULES, loadBuilderState, generateModule, acceptAsset, saveEditedContent,
 } from '@/lib/builderService';
+import { hasEntitlement, startCheckout, verifyCheckoutSession } from '@/lib/paymentService';
+import { useAuth } from '@/lib/AuthContext';
+import PaywallCard from '@/components/builder/PaywallCard';
+import PurchaseSuccessOverlay from '@/components/builder/PurchaseSuccessOverlay';
 import BuilderHeader from '@/components/builder/BuilderHeader';
 import ModuleNav from '@/components/builder/ModuleNav';
 import ModulePanel from '@/components/builder/ModulePanel';
@@ -33,7 +37,11 @@ const MODULE_DISPLAY = {
 };
 
 export default function Build() {
-  const [phase, setPhase] = useState('loading'); // loading | no-selection | error | ready
+  const { user } = useAuth();
+  const [phase, setPhase] = useState('loading'); // loading | no-selection | paywall | error | ready
+  // Payment states: not_started | starting | processing | failed | cancelled | iframe_blocked
+  const [payment, setPayment] = useState({ state: 'not_started' });
+  const [showUnlocked, setShowUnlocked] = useState(false);
   const [loadKey, setLoadKey] = useState(0);
   const [state, setState] = useState(null);
   const [activeKey, setActiveKey] = useState('customer');
@@ -53,6 +61,18 @@ export default function Build() {
           setPhase('no-selection');
           return;
         }
+        // PAYMENT GATE: without a verified entitlement, show the paywall —
+        // the server independently blocks generation (payment_required).
+        if (user?.role !== 'admin') {
+          const entitled = await hasEntitlement(s.selection.id);
+          if (!entitled) {
+            if (!cancelled) {
+              setState(s);
+              setPhase('paywall');
+            }
+            return;
+          }
+        }
         setState(s);
         const firstIncomplete = BUILD_MODULES.find(
           (m) => !(s.assets || []).some((a) => a.module_type === m.key && a.status === 'accepted')
@@ -66,7 +86,43 @@ export default function Build() {
     return () => {
       cancelled = true;
     };
-  }, [loadKey]);
+  }, [loadKey, user]);
+
+  // CHECKOUT RETURN — verify with the server before unlocking anything.
+  useEffect(() => {
+    const urlParams = new URLSearchParams(window.location.search);
+    const result = urlParams.get('checkout');
+    const sessionId = urlParams.get('session_id');
+    if (!result) return;
+    window.history.replaceState({}, '', '/build');
+    if (result === 'success' && sessionId) {
+      setPayment({ state: 'starting' });
+      (async () => {
+        try {
+          const res = await verifyCheckoutSession(sessionId);
+          if (res.status === 'paid') {
+            trackEvent('purchase_completed', { product_key: 'build_my_business' });
+            setPayment({ state: 'not_started' });
+            setLoadKey((k) => k + 1);
+            const seenKey = `hd_unlocked_${sessionId}`;
+            if (!sessionStorage.getItem(seenKey)) {
+              sessionStorage.setItem(seenKey, '1');
+              setShowUnlocked(true);
+            }
+          } else if (res.status === 'failed') {
+            setPayment({ state: 'failed' });
+          } else {
+            setPayment({ state: 'processing' });
+          }
+        } catch (e) {
+          setPayment({ state: 'processing' });
+        }
+      })();
+    } else if (result === 'cancelled') {
+      setPayment({ state: 'cancelled' });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const assets = useMemo(() => (state ? state.assets || [] : []), [state]);
 
@@ -89,6 +145,15 @@ export default function Build() {
   const percent = Math.round((acceptedCount / BUILD_MODULES.length) * 100);
   const allAccepted = acceptedCount === BUILD_MODULES.length;
 
+  // Fire build_completed once per session when the whole builder is done.
+  const buildDoneRef = useRef(false);
+  useEffect(() => {
+    if (allAccepted && !buildDoneRef.current) {
+      buildDoneRef.current = true;
+      trackEvent('build_completed');
+    }
+  }, [allAccepted]);
+
   const isUnlocked = (idx) => BUILD_MODULES.slice(0, idx).every((m) => byModule[m.key].accepted);
 
   // REVIEW RECOMMENDED: an upstream accepted version changed after this
@@ -110,6 +175,8 @@ export default function Build() {
       if (res.status === 'ok' && res.asset) {
         setState((prev) => ({ ...prev, assets: [res.asset, ...(prev ? prev.assets || [] : [])] }));
         trackEvent(isRegen ? 'module_regenerated' : 'module_generated', { module_type: moduleKey });
+      } else if (res.status === 'payment_required') {
+        setPhase('paywall');
       } else if (res.status === 'missing_upstream') {
         setGenError('Accept the previous module first — each module builds on the one before it.');
       } else {
@@ -192,6 +259,43 @@ export default function Build() {
     list.push({ label: 'EDIT', onClick: () => setEditor(display) });
     return list;
   };
+
+  // BUILD MY BUSINESS — $19. Double-tap protected; iframe-aware.
+  const handleStartCheckout = async () => {
+    if (payment.state === 'starting') return;
+    setPayment({ state: 'starting' });
+    try {
+      const res = await startCheckout();
+      if (res.status === 'already_entitled') {
+        setPayment({ state: 'not_started' });
+        setLoadKey((k) => k + 1);
+      } else if (res.status === 'checkout_started' && res.url) {
+        trackEvent('checkout_started', { product_key: 'build_my_business' });
+        window.location.href = res.url;
+        return;
+      } else if (res.status === 'iframe_blocked') {
+        setPayment({ state: 'iframe_blocked' });
+      } else {
+        setPayment({ state: 'failed' });
+      }
+    } catch (e) {
+      setPayment({ state: 'failed' });
+    }
+  };
+
+  if (phase === 'paywall') {
+    return (
+      <div className="mx-auto w-full max-w-2xl space-y-5">
+        <PaywallCard
+          modelName={state ? state.model.name : 'your business'}
+          fit={state ? state.fit : null}
+          payment={payment}
+          busy={payment.state === 'starting'}
+          onStartCheckout={handleStartCheckout}
+        />
+      </div>
+    );
+  }
 
   if (phase === 'loading') {
     return (
@@ -351,6 +455,18 @@ export default function Build() {
       )}
 
       <AskHustleDrop onUsed={() => trackEvent('ask_hustledrop_used')} />
+
+      {showUnlocked && state && (
+        <PurchaseSuccessOverlay
+          businessName={state.model.name}
+          onStart={() => {
+            setShowUnlocked(false);
+            setActiveKey('customer');
+            window.scrollTo({ top: 0 });
+          }}
+          onLater={() => setShowUnlocked(false)}
+        />
+      )}
 
       {editor && (
         <StructuredEditor

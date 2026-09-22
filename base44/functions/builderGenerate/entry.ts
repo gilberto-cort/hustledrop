@@ -1,6 +1,7 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.44';
 import { loadBuilderContext } from '../../shared/builderContext.js';
 import { MODULE_PROMPTS, BUILDER_MODULE_KEYS } from '../../shared/builderPrompts.js';
+import { findEntitlement } from '../../shared/entitlement.js';
 
 export default async function(req) {
   try {
@@ -35,10 +36,15 @@ export default async function(req) {
       return Response.json({ error: 'invalid_module' }, { status: 400 });
     }
 
-    // ENTITLEMENT HOOK: when payments ship, enforce the BUILD entitlement here —
-    // this is the single choke point for every module generation.
     const loaded = await loadBuilderContext(base44, module_type);
     if (loaded.error) return Response.json({ status: loaded.error, missing: loaded.missing || [] });
+
+    // ENTITLEMENT: paid generation requires a verified completed purchase for
+    // THIS selected business. Refunds revoke generation but keep content.
+    if (user.role !== 'admin') {
+      const entitlement = await findEntitlement(base44, loaded.selection.id);
+      if (!entitlement) return Response.json({ status: 'payment_required' }, { status: 403 });
+    }
 
     const options = { ...(body.options || {}) };
     if (module_type === 'brand') options.seen_names = loaded.seenBrandNames;

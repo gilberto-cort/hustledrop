@@ -8,7 +8,11 @@
     },
     "product_key": {
       "type": "string",
-      "description": "Identifier of the purchased product"
+      "description": "Identifier of the purchased product (build_my_business = $19 one-time Business Builder unlock for ONE selected business)"
+    },
+    "selected_business_id": {
+      "type": "string",
+      "description": "The SelectedBusiness this purchase unlocks. One purchase = one business build. NEVER blank for build_my_business purchases."
     },
     "amount": {
       "type": "number",
@@ -20,15 +24,19 @@
     },
     "payment_provider": {
       "type": "string",
-      "description": "Provider used (e.g. stripe, wix_payments)"
+      "description": "Provider used (stripe)"
+    },
+    "provider_checkout_id": {
+      "type": "string",
+      "description": "Stripe Checkout Session id (cs_...) this purchase was fulfilled from \u2014 the idempotency key for webhook + verify"
     },
     "provider_transaction_id": {
       "type": "string",
-      "description": "Provider-side transaction reference"
+      "description": "Provider-side transaction reference (Stripe payment intent)"
     },
     "status": {
       "type": "string",
-      "description": "Purchase status",
+      "description": "pending = checkout started/processing; completed = PAID (verified server-side); failed; refunded",
       "enum": [
         "pending",
         "completed",

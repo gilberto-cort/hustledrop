@@ -1,6 +1,7 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.44';
 import { loadBuilderContext } from '../../shared/builderContext.js';
 import { GROW_PROMPTS, GROW_MISSION_KEYS } from '../../shared/growPrompts.js';
+import { findEntitlement } from '../../shared/entitlement.js';
 
 // GROW GENERATION — one mission content piece per request (cost control).
 // Saves the generated draft onto the caller's own GrowMission record; the
@@ -20,6 +21,12 @@ export default async function(req) {
 
     const loaded = await loadBuilderContext(base44, null);
     if (loaded.error) return Response.json({ status: loaded.error });
+
+    // ENTITLEMENT: paid generation requires a verified completed purchase.
+    if (user.role !== 'admin') {
+      const entitlement = await findEntitlement(base44, loaded.selection.id);
+      if (!entitlement) return Response.json({ status: 'payment_required' }, { status: 403 });
+    }
 
     // Real launch records for personalization (user-scoped).
     const quests = await base44.entities.LaunchQuest.list('-created_date', 1);

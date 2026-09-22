@@ -6,16 +6,19 @@ import {
   Dialog, DialogContent, DialogHeader, DialogTitle,
 } from '@/components/ui/dialog';
 import BusinessModelForm from '@/components/admin/BusinessModelForm';
-import { Boxes, Plus, Pencil } from 'lucide-react';
+import { Boxes, Plus, Pencil, CreditCard } from 'lucide-react';
 
 export default function Admin() {
   const [models, setModels] = useState(null);
+  const [purchases, setPurchases] = useState([]);
   const [editing, setEditing] = useState(null);
   const [saving, setSaving] = useState(false);
 
   const load = async () => {
     const rows = await base44.entities.BusinessModel.list('name', 500);
     setModels(rows || []);
+    const paid = await base44.entities.Purchase.list('-created_date', 50).catch(() => []);
+    setPurchases(paid || []);
   };
 
   useEffect(() => {
@@ -92,6 +95,58 @@ export default function Admin() {
           ))}
         </div>
       )}
+
+      <div className="rounded-2xl border border-white/10 bg-white/[0.02] p-5">
+        <div className="flex items-center justify-between gap-3">
+          <div className="flex items-center gap-2">
+            <CreditCard className="h-4 w-4 text-primary" />
+            <div>
+              <div className="text-xs font-semibold tracking-[0.25em] text-muted-foreground">PURCHASES</div>
+              <h2 className="mt-1 text-lg font-semibold">Build My Business — $19</h2>
+            </div>
+          </div>
+          <div className="text-right">
+            <div className="font-mono text-2xl font-bold text-primary">
+              {purchases.filter((p) => p.status === 'completed').length}
+            </div>
+            <div className="text-[10px] text-muted-foreground">paid</div>
+          </div>
+        </div>
+        <div className="mt-3 grid grid-cols-3 gap-2 text-center sm:max-w-xs">
+          <div className="rounded-lg border border-white/10 bg-white/[0.02] py-2">
+            <div className="font-mono text-sm font-bold">{purchases.filter((p) => p.status === 'pending').length}</div>
+            <div className="text-[9px] text-muted-foreground">PENDING</div>
+          </div>
+          <div className="rounded-lg border border-white/10 bg-white/[0.02] py-2">
+            <div className="font-mono text-sm font-bold">{purchases.filter((p) => p.status === 'failed').length}</div>
+            <div className="text-[9px] text-muted-foreground">FAILED</div>
+          </div>
+          <div className="rounded-lg border border-white/10 bg-white/[0.02] py-2">
+            <div className="font-mono text-sm font-bold">{purchases.filter((p) => p.status === 'refunded').length}</div>
+            <div className="text-[9px] text-muted-foreground">REFUNDED</div>
+          </div>
+        </div>
+        {purchases.length > 0 && (
+          <div className="mt-3 space-y-1.5">
+            {purchases.slice(0, 8).map((p) => (
+              <div key={p.id} className="flex items-center justify-between rounded-lg border border-white/10 px-3 py-2 text-xs">
+                <span className="font-mono text-muted-foreground">{(p.created_date || '').slice(0, 10)}</span>
+                <span className="font-mono text-[10px] text-muted-foreground">${((p.amount || 0) / 100).toFixed(2)}</span>
+                <span
+                  className={`font-mono text-[10px] font-bold ${
+                    p.status === 'completed' ? 'text-primary' : p.status === 'refunded' ? 'text-destructive' : 'text-muted-foreground'
+                  }`}
+                >
+                  {p.status.toUpperCase()}
+                </span>
+              </div>
+            ))}
+          </div>
+        )}
+        {purchases.length === 0 && (
+          <p className="mt-3 text-sm text-muted-foreground">No purchases yet.</p>
+        )}
+      </div>
 
       <Dialog open={!!editing} onOpenChange={(o) => !o && setEditing(null)}>
         <DialogContent className="max-h-[85vh] max-w-2xl overflow-y-auto border-white/10 bg-card">
