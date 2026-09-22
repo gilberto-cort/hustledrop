@@ -18,6 +18,7 @@ export default function DnaShareCard({ dna, avatar }) {
       <div className={`mt-4 font-mono text-xl font-bold tracking-wide ${primary.accent}`}>{primary.label}</div>
       {secondary && <div className={`mt-1 font-mono text-xs ${secondary.accent}`}>+ {secondary.label}</div>}
       <div className="mt-3 inline-block rounded border border-white/20 bg-white/5 px-3 py-1 font-mono text-sm font-bold tracking-[0.2em]">{dna.hustle_code}</div>
+      <p className="mt-3 font-mono text-[11px] text-muted-foreground">Here's how I'm wired to build.</p>
       <div className="mt-4 space-y-1 font-mono text-[11px] text-foreground/85">
         {strengths.map((token) => (
           <div key={token}>◆ {STRENGTHS[token] || token}</div>

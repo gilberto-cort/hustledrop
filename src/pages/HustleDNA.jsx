@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { base44 } from '@/api/base44Client';
 import { trackEvent } from '@/lib/analytics';
 import EmptyState from '@/components/EmptyState';
@@ -120,10 +120,16 @@ export default function HustleDNA() {
         onSelect={handleSelectAvatar}
       />
 
-      <div className="flex justify-center">
+      <div className="flex flex-wrap justify-center gap-3">
         <Button onClick={handleShare} className="rounded-full bg-brand-gradient text-xs font-semibold text-white">
           <Share2 className="mr-1.5 h-3.5 w-3.5" /> SHARE MY HUSTLEDNA
         </Button>
+        <Link
+          to="/results"
+          className="inline-flex items-center gap-1.5 rounded-full border border-white/15 px-5 py-2.5 text-xs font-semibold text-foreground transition hover:border-white/30"
+        >
+          VIEW MY HUSTLEMATCHES <ArrowRight className="h-3.5 w-3.5" />
+        </Link>
       </div>
 
       <Dialog open={shareOpen} onOpenChange={setShareOpen}>

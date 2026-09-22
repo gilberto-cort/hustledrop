@@ -119,10 +119,6 @@ export default function QuizFlow() {
     setSession(completed);
     trackEvent('quiz_completed');
     setPhase('analyzing');
-
-    if (isAuthenticated) {
-      saveHustleProfile(buildHustleProfile(completed.answers, user?.id)).catch(() => {});
-    }
   };
 
   const handleBack = () => {
@@ -140,7 +136,22 @@ export default function QuizFlow() {
   }
 
   if (phase === 'analyzing') {
-    return <AnalysisTransition onContinue={() => navigate('/results')} />;
+    // Save the profile BEFORE results load so the match engine always scores
+    // the latest answers — rematches create a new result set, never corrupt history.
+    return (
+      <AnalysisTransition
+        onContinue={async () => {
+          try {
+            if (isAuthenticated) {
+              await saveHustleProfile(buildHustleProfile(session.answers, user?.id));
+            }
+          } catch (e) {
+            // the results page surfaces a retry if the profile is stale
+          }
+          navigate('/results');
+        }}
+      />
+    );
   }
 
   const question = QUIZ_QUESTIONS[step];

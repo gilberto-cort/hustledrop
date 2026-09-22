@@ -12,6 +12,8 @@ export const EVENT_NAMES = [
   'dna_shared',
   'result_viewed',
   'result_shared',
+  'alternate_match_viewed',
+  'comparison_opened',
   'rematch_started',
   'tie_breaker_presented',
   'tie_breaker_completed',

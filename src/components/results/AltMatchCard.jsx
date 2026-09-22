@@ -1,31 +1,33 @@
 import React from 'react';
-import { levelLabel, speedLabel, workModeLabel, startupRangeLabel, positiveText } from '@/lib/matchDisplay';
+import { Button } from '@/components/ui/button';
+import { startupRangeLabel, workModeLabel, speedLabel, positiveText, negativeText } from '@/lib/matchDisplay';
 
-export default function AltMatchCard({ match }) {
+// Ranked alternate (#2 / #3): name, Personal Fit, startup range, one strongest
+// reason, one tradeoff, and VIEW MATCH. Never disturbs the original ranking.
+export default function AltMatchCard({ match, onView }) {
   const m = match.model;
+  const reason = (match.positives || [])[0];
+  const tradeoff = (match.negatives || [])[0];
   return (
     <div className="rounded-2xl border border-white/10 bg-white/[0.02] p-5">
       <div className="flex items-start justify-between gap-3">
         <div>
           <div className="text-[10px] font-semibold tracking-wider text-muted-foreground">MATCH #{match.rank}</div>
           <h3 className="mt-1 text-base font-semibold text-foreground">{m.name}</h3>
+          <div className="mt-1 text-xs text-muted-foreground">
+            {startupRangeLabel(m)} · {workModeLabel(m)} · {speedLabel(m.speed_to_first_sale)}
+          </div>
         </div>
-        <div className="text-right">
+        <div className="shrink-0 text-right">
           <span className="text-2xl font-bold text-gradient">{match.fit}%</span>
           <div className="text-[10px] font-semibold tracking-wider text-muted-foreground">PERSONAL FIT</div>
         </div>
       </div>
-      <p className="mt-2 text-xs leading-relaxed text-muted-foreground">{m.description}</p>
-      <div className="mt-3 flex flex-wrap gap-1.5">
-        {[startupRangeLabel(m), workModeLabel(m), speedLabel(m.speed_to_first_sale), levelLabel(m.physical_intensity) + ' physical'].map((t) => (
-          <span key={t} className="rounded-full border border-white/10 px-2.5 py-1 text-[10px] font-medium text-muted-foreground">
-            {t}
-          </span>
-        ))}
-      </div>
-      {(match.positives || []).slice(0, 1).map((p, i) => (
-        <p key={i} className="mt-3 text-xs text-foreground/80">✓ {positiveText(p)}</p>
-      ))}
+      {reason && <p className="mt-3 text-xs text-foreground/80">✓ {positiveText(reason)}</p>}
+      {tradeoff && <p className="mt-1.5 text-xs text-muted-foreground">– {negativeText(tradeoff)}</p>}
+      <Button onClick={onView} variant="outline" className="mt-4 w-full rounded-full py-2.5 text-xs font-semibold">
+        VIEW MATCH
+      </Button>
     </div>
   );
 }

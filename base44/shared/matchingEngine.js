@@ -55,6 +55,7 @@ function num(v, d = 1) {
 }
 
 // ---------- Factor scores (0.00 – 1.00) ----------
+// (Deterministic factor scoring — unchanged in Build 05.)
 
 function budgetFit(budgetKey, m) {
   const max = BUDGET_MAX[budgetKey] ?? 500;

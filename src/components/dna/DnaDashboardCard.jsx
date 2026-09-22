@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 import { base44 } from '@/api/base44Client';
 import { Dna, ArrowRight } from 'lucide-react';
 import SpriteDisplay from '@/components/dna/SpriteDisplay';
-import { DNA_TYPES } from '@/lib/dnaDisplay';
+import { DNA_TYPES, levelName } from '@/lib/dnaDisplay';
 
 // Dashboard HustleDNA card: selected sprite, primary type, Hustle Code,
 // secondary type and a VIEW MY HUSTLEDNA link. All six scores stay on the
@@ -60,7 +60,9 @@ export default function DnaDashboardCard() {
       <div className="flex items-center gap-3">
         <SpriteDisplay avatar={avatar} size="sm" />
         <div>
-          <div className="font-mono text-[9px] font-bold tracking-widest text-primary">LEVEL 1 · EXPLORER</div>
+          <div className="font-mono text-[9px] font-bold tracking-widest text-primary">
+            LEVEL {avatar?.level || 1} · {levelName(avatar?.level).toUpperCase()}
+          </div>
           <span className={`font-mono text-sm font-bold ${primary.accent}`}>{primary.label}</span>
         </div>
       </div>

@@ -1,4 +1,5 @@
 // Deterministic display translations for match results. No AI-generated explanations.
+import { DNA_TYPES } from '@/lib/dnaDisplay';
 
 export function levelLabel(v) {
   return ['', 'Very low', 'Low', 'Moderate', 'High', 'Very high'][Number(v)] || '—';
@@ -51,4 +52,37 @@ export function positiveText(token) {
 
 export function negativeText(token) {
   return NEGATIVE_TEXT[token] || token.replace(/_/g, ' ');
+}
+
+export const LOCATION_CHECK_NOTE =
+  'Some requirements may vary by location and should be verified before launch.';
+
+// Qualitative DNA ↔ business connection. Template-based only — uses the
+// user's DNA types, never AI, and never modifies Personal Fit.
+const DNA_PRIMARY_CONNECTION = {
+  hustler: 'This kind of business rewards your preference for action — you can move first, talk to real people and adjust as you learn instead of planning for months.',
+  digital_builder: 'This model leans on tools and systems — the leverage-first way you naturally prefer to build, where the work can compound beyond your own hours.',
+  creator: 'This model gives your work room to stand out — the craft itself can attract the right customers instead of a big ad budget.',
+  connector: 'This model runs on what you naturally do best: conversations, relationships and trust that can turn into repeat business and referrals.',
+  operator: 'This model rewards the consistent, organized execution you prefer — showing up reliably is a genuine advantage here.',
+  builder: 'This model gives you tangible, hands-on work with visible results at the end of the day.',
+};
+
+const DNA_SECONDARY_CONNECTION = {
+  hustler: 'Your Hustler side can appreciate how quickly you can test and adjust here.',
+  digital_builder: 'Your Digital Builder side gets room to systematize and automate as things grow.',
+  creator: 'Your Creator side can shape how the business looks and feels.',
+  connector: 'Your Connector side can build relationships and earn referrals along the way.',
+  operator: 'Your Operator side helps keep the day-to-day consistent and organized.',
+  builder: 'Your Builder side can appreciate the practical, hands-on nature of the work.',
+};
+
+export function dnaConnection(dna) {
+  const primary = DNA_TYPES[dna.primary_type];
+  const secondary = dna.secondary_type ? DNA_TYPES[dna.secondary_type] : null;
+  return {
+    header: secondary ? `${primary.label} + ${secondary.label}` : primary.label,
+    primary: DNA_PRIMARY_CONNECTION[dna.primary_type] || '',
+    secondary: secondary ? DNA_SECONDARY_CONNECTION[dna.secondary_type] || '' : '',
+  };
 }

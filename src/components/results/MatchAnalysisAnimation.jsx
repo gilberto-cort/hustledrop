@@ -3,12 +3,13 @@ import { motion } from 'framer-motion';
 import { Check } from 'lucide-react';
 
 const STEPS = [
-  'Analyzing your profile…',
-  'Checking startup requirements…',
+  'ANALYZING YOUR HUSTLE DNA…',
+  'Understanding how you like to work…',
+  'Checking your practical constraints…',
   'Comparing business models…',
-  'Evaluating lifestyle fit…',
-  'Calculating compatibility…',
-  'Match found.',
+  'Evaluating tradeoffs…',
+  'Finding your strongest matches…',
+  'MATCH FOUND.',
 ];
 
 export default function MatchAnalysisAnimation({ onComplete }) {
@@ -16,7 +17,7 @@ export default function MatchAnalysisAnimation({ onComplete }) {
 
   useEffect(() => {
     if (visible < STEPS.length) {
-      const t = setTimeout(() => setVisible((v) => v + 1), 650);
+      const t = setTimeout(() => setVisible((v) => v + 1), 500);
       return () => clearTimeout(t);
     }
     const t = setTimeout(() => onComplete && onComplete(), 500);
