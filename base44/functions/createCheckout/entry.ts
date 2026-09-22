@@ -40,7 +40,7 @@ export default async function(req) {
     let reuseSession = null;
     if (pending && pending.provider_checkout_id) {
       reuseSession = await stripeGetSafe(`/v1/checkout/sessions/${pending.provider_checkout_id}`);
-      const reuseOrigin = getAppOrigin(req);
+      const reuseOrigin = getAppOrigin(req, secrets);
       const reusable =
         reuseSession && !reuseSession.error && reuseSession.status === 'open' && reuseSession.url &&
         typeof reuseSession.success_url === 'string' &&
@@ -78,20 +78,9 @@ export default async function(req) {
     // the user is actually browsing (current deployment URL or a future custom
     // domain). If it can't be derived, fail loudly instead of redirecting the
     // user to a dead app.
-    const appOrigin = getAppOrigin(req);
+    const appOrigin = getAppOrigin(req, secrets);
     if (!appOrigin) {
-      console.log('createCheckout error: could not derive app origin from request');
-      console.log('originDebug req.url:', req.url);
-      try {
-        const h = req.headers;
-        console.log('originDebug origin:', h.get('origin'));
-        console.log('originDebug referer:', h.get('referer'));
-        console.log('originDebug x-forwarded-host:', h.get('x-forwarded-host'));
-        console.log('originDebug x-forwarded-proto:', h.get('x-forwarded-proto'));
-        console.log('originDebug host:', h.get('host'));
-      } catch (e) {
-        console.log('originDebug headers error:', e.message);
-      }
+      console.log('createCheckout error: could not derive app origin (no Origin/Referer header, no APP_ORIGIN secret)');
       return Response.json({ status: 'checkout_error' }, { status: 500 });
     }
     const appId = secrets.get('BASE44_APP_ID') || Deno.env.get('BASE44_APP_ID') || '';

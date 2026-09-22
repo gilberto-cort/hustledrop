@@ -2,11 +2,11 @@
 //
 // The origin must be the one the USER is browsing — the current base44.app
 // deployment URL or a connected custom domain — so checkout keeps working
-// when the app URL changes or a domain is connected. No hard-coded hostnames
-// anywhere: if the origin cannot be determined, callers must fail loudly
-// (checkout_error) instead of ever redirecting the user to a dead or internal
-// host.
-export function getAppOrigin(req) {
+// when the app URL changes or a domain is connected. No hard-coded hostnames:
+// if the origin cannot be determined, callers must fail loudly
+// (checkout_error) instead of ever redirecting the user to a dead or
+// internal host.
+export function getAppOrigin(req, secrets) {
   const headers = (req && req.headers) || {};
 
   // 1. Browser Origin header — present on the SDK's POST from the app, and it
@@ -38,7 +38,23 @@ export function getAppOrigin(req) {
   const fwdProto = (headers.get && headers.get('x-forwarded-proto')) || 'https';
   if (fwdHost) return `${fwdProto}://${fwdHost}`;
 
-  // 4. Request URL — last resort only. Inside the runtime this can resolve to
+  // 4. Centralized configuration — an optional APP_ORIGIN secret (Settings →
+  //    Secrets) is the documented override if header-derived origins ever
+  //    fail. One place to change the checkout origin; never hard-coded URLs
+  //    scattered through functions.
+  if (secrets && typeof secrets.get === 'function') {
+    const conf = secrets.get('APP_ORIGIN');
+    if (conf) {
+      try {
+        const u = new URL(conf);
+        if (u.protocol === 'https:') return u.origin;
+      } catch (e) {
+        // fall through
+      }
+    }
+  }
+
+  // 5. Request URL — last resort only. Inside the runtime this can resolve to
   //    the platform's internal dispatcher host (a *.workers.dev URL the user
   //    never browses), so internal hosts are rejected. Fail loudly otherwise.
   try {
