@@ -97,6 +97,10 @@ const OFFER_SCHEMA_ITEM = {
   required: ['name', 'customer_gets', 'core_outcome', 'delivery_method', 'included', 'not_included', 'delivery_effort', 'startup_requirements'],
 };
 
+// NOTE: contextBlock() injects compliance_flags review language ONLY when the
+// matched business model has non-empty compliance_flags — otherwise no
+// compliance copy is generated anywhere.
+
 export const MODULE_PROMPTS = {
   customer: (ctx) => ({
     prompt: `You are HustleDrop's Business Builder, generating Module 01 — CUSTOMER.
