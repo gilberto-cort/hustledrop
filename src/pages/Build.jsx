@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
+import { base44 } from '@/api/base44Client';
 import { trackEvent } from '@/lib/analytics';
 import EmptyState from '@/components/EmptyState';
 import { Briefcase, ArrowRight, RotateCcw, Check } from 'lucide-react';
@@ -10,36 +11,38 @@ import { hasEntitlement, startCheckout, verifyCheckoutWithRetry } from '@/lib/pa
 import { useAuth } from '@/lib/AuthContext';
 import PaywallCard from '@/components/builder/PaywallCard';
 import PurchaseSuccessOverlay from '@/components/builder/PurchaseSuccessOverlay';
-import BuilderHeader from '@/components/builder/BuilderHeader';
-import ModuleNav from '@/components/builder/ModuleNav';
-import ModulePanel from '@/components/builder/ModulePanel';
 import GenerationOverlay from '@/components/builder/GenerationOverlay';
 import StructuredEditor from '@/components/builder/StructuredEditor';
 import AskHustleDrop from '@/components/builder/AskHustleDrop';
-import CustomerModule from '@/components/builder/CustomerModule';
-import OfferModule from '@/components/builder/OfferModule';
-import PricingModule from '@/components/builder/PricingModule';
-import BrandModule from '@/components/builder/BrandModule';
-import SalesModule from '@/components/builder/SalesModule';
-import MarketingModule from '@/components/builder/MarketingModule';
+import BuilderHUD from '@/components/builder/BuilderHUD';
+import MissionMap from '@/components/builder/MissionMap';
+import MissionShell from '@/components/builder/missions/MissionShell';
+import { MISSION_META } from '@/components/builder/missions/missionMeta';
+import CustomerMission from '@/components/builder/missions/CustomerMission';
+import OfferMission from '@/components/builder/missions/OfferMission';
+import PricingMission from '@/components/builder/missions/PricingMission';
+import BrandMission from '@/components/builder/missions/BrandMission';
+import SalesMission from '@/components/builder/missions/SalesMission';
+import MarketingMission from '@/components/builder/missions/MarketingMission';
 
-// BUSINESS BUILDER — the six modules that create and approve the business
-// (Customer → Marketing). When all six are accepted, the business is BUILT
-// and the user advances to LAUNCH MODE. Free during development; the payment
-// gate installs later at the single server-side entitlement hook.
-const MODULE_DISPLAY = {
-  customer: CustomerModule,
-  offer: OfferModule,
-  pricing: PricingModule,
-  brand: BrandModule,
-  sales: SalesModule,
-  marketing: MarketingModule,
+// BUSINESS BUILDER — six interactive missions (FIND YOUR CROWD → LAUNCH YOUR
+// CAMPAIGN). Each mission has its own interaction and its own confirm action;
+// acceptance still goes through the same GeneratedAsset persistence (accept =
+// idempotent per mission, previous versions archived, never overwritten).
+// XP is derived from accepted missions — one award per mission by design.
+const MISSION_COMPONENTS = {
+  customer: CustomerMission,
+  offer: OfferMission,
+  pricing: PricingMission,
+  brand: BrandMission,
+  sales: SalesMission,
+  marketing: MarketingMission,
 };
 
 export default function Build() {
   const { user } = useAuth();
   const [phase, setPhase] = useState('loading'); // loading | no-selection | paywall | error | ready
-  // Payment states: not_started | starting | processing | failed | cancelled | iframe_blocked
+  // Payment states: not_started | starting | verifying | processing | failed | cancelled | iframe_blocked
   const [payment, setPayment] = useState({ state: 'not_started' });
   const [verifyingSession, setVerifyingSession] = useState(null);
   const [verifyAttempt, setVerifyAttempt] = useState(0);
@@ -52,6 +55,26 @@ export default function Build() {
   const [brandPicking, setBrandPicking] = useState(false);
   const [editor, setEditor] = useState(null);
   const [genError, setGenError] = useState(null);
+  const [avatar, setAvatar] = useState(null);
+  const [celebrate, setCelebrate] = useState(null); // mission key that just completed
+
+  // Persistent character sprite for the HUD (cosmetic only).
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const me = await base44.auth.me().catch(() => null);
+        if (!cancelled && me && me.selected_avatar_id) {
+          setAvatar(await base44.entities.Avatar.get(me.selected_avatar_id));
+        }
+      } catch (e) {
+        // cosmetic — the labelled fallback slot covers it
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [user]);
 
   useEffect(() => {
     let cancelled = false;
@@ -160,7 +183,8 @@ export default function Build() {
     return map;
   }, [assets]);
 
-  const acceptedCount = BUILD_MODULES.filter((m) => byModule[m.key].accepted).length;
+  const acceptedKeys = BUILD_MODULES.filter((m) => byModule[m.key].accepted).map((m) => m.key);
+  const acceptedCount = acceptedKeys.length;
   const percent = Math.round((acceptedCount / BUILD_MODULES.length) * 100);
   const allAccepted = acceptedCount === BUILD_MODULES.length;
 
@@ -173,10 +197,17 @@ export default function Build() {
     }
   }, [allAccepted]);
 
+  // Subtle mission-complete celebration clears itself.
+  useEffect(() => {
+    if (!celebrate) return undefined;
+    const t = setTimeout(() => setCelebrate(null), 2400);
+    return () => clearTimeout(t);
+  }, [celebrate]);
+
   const isUnlocked = (idx) => BUILD_MODULES.slice(0, idx).every((m) => byModule[m.key].accepted);
 
   // REVIEW RECOMMENDED: an upstream accepted version changed after this
-  // module was generated. We never auto-regenerate — the user decides.
+  // mission was generated. We never auto-regenerate — the user decides.
   const reviewNeeded = (key) => {
     const acc = byModule[key]?.accepted;
     const basedOn = acc?.generation_metadata?.based_on;
@@ -197,7 +228,7 @@ export default function Build() {
       } else if (res.status === 'payment_required') {
         setPhase('paywall');
       } else if (res.status === 'missing_upstream') {
-        setGenError('Accept the previous module first — each module builds on the one before it.');
+        setGenError('Lock in the previous mission first — each mission builds on the one before it.');
       } else {
         setGenError(res.error || 'Generation failed — please try again.');
       }
@@ -208,20 +239,36 @@ export default function Build() {
     }
   };
 
-  const handleKeep = async (asset) => {
+  // MISSION CONFIRM — every mission's distinct confirm action funnels here.
+  // An optional patch (the user's selection) is written into the DRAFT only;
+  // acceptance then persists one idempotent accepted version per mission.
+  // Accepted versions are archived, never overwritten.
+  const confirmMission = async (moduleKey, patch) => {
     if (keeping) return;
+    const slot = byModule[moduleKey];
+    const asset = slot.draft || slot.accepted;
+    if (!asset) return;
     setKeeping(true);
     try {
-      const updated = await acceptAsset(asset, assets.filter((a) => a.module_type === asset.module_type));
-      setState((prev) => ({
-        ...prev,
-        assets: prev.assets.map((a) => {
-          if (a.id === updated.id) return updated;
-          if (a.module_type === asset.module_type && a.status === 'accepted') return { ...a, status: 'archived' };
-          return a;
-        }),
-      }));
-      trackEvent('module_accepted', { module_type: asset.module_type });
+      let target = asset;
+      if (patch) {
+        const { asset: saved } = await saveEditedContent(
+          asset,
+          assets.filter((a) => a.module_type === moduleKey),
+          { ...asset.content, ...patch }
+        );
+        target = saved;
+      }
+      const updated = await acceptAsset(target, assets.filter((a) => a.module_type === moduleKey));
+      setState((prev) => {
+        const others = prev.assets.filter((a) => a.id !== updated.id);
+        const archived = others.map((a) =>
+          a.module_type === moduleKey && a.status === 'accepted' ? { ...a, status: 'archived' } : a
+        );
+        return { ...prev, assets: [updated, ...archived] };
+      });
+      trackEvent('module_accepted', { module_type: moduleKey });
+      setCelebrate(moduleKey);
     } catch (e) {
       setGenError('Could not save your choice — please try again.');
     } finally {
@@ -249,7 +296,7 @@ export default function Build() {
     }
   };
 
-  // Brand stage 2: the user picked a name from the generated options.
+  // Brand stage 2: the user confirmed a name from the generated options.
   const handlePickName = async (name) => {
     if (generating || brandPicking) return;
     setBrandPicking(true);
@@ -269,24 +316,9 @@ export default function Build() {
     }
   };
 
-  const actionsFor = (key) => {
-    const slot = byModule[key];
-    const display = slot.draft || slot.accepted;
-    if (key === 'brand' && display && Array.isArray(display.content?.name_options)) return [];
-    if (!display) {
-      return [{ label: 'GENERATE MODULE', primary: true, onClick: () => handleGenerate(key) }];
-    }
-    const list = [];
-    if (slot.draft) list.push({ label: 'KEEP IT', primary: true, onClick: () => handleKeep(slot.draft) });
-    list.push({ label: 'TRY ANOTHER', onClick: () => handleGenerate(key, {}, true) });
-    list.push({ label: 'EDIT', onClick: () => setEditor(display) });
-    return list;
-  };
-
-  // BUILD MY BUSINESS — $19. Double-tap protected; iframe-aware.
+  // BUILD MY BUSINESS — $19. Double-tap protected; iframe-aware. Never while
+  // a payment is being verified or reconciled.
   const handleStartCheckout = async () => {
-    // A new checkout can never start while a payment is being verified or
-    // reconciled — that's how duplicate charges happen.
     if (payment.state === 'starting' || payment.state === 'verifying' || payment.state === 'processing') return;
     setPayment({ state: 'starting' });
     try {
@@ -337,7 +369,7 @@ export default function Build() {
       <EmptyState
         icon={Briefcase}
         title="Choose a business first"
-        description="The Business Builder personalizes every module around your selected HustleMatch — your budget, hours, skills and HustleDNA. Pick a business from your results to start building."
+        description="The Business Builder personalizes every mission around your selected HustleMatch — your budget, hours, skills and HustleDNA. Pick a business from your results to start your quest."
         action={
           <Link
             to="/results"
@@ -371,23 +403,36 @@ export default function Build() {
   }
 
   const idx = BUILD_MODULES.findIndex((m) => m.key === activeKey);
-  const def = BUILD_MODULES[idx];
+  const meta = MISSION_META[activeKey];
   const slot = byModule[activeKey];
-  const display = slot.draft || slot.accepted;
-  const Display = MODULE_DISPLAY[activeKey];
-  const hasNext = idx < BUILD_MODULES.length - 1;
+  const Mission = MISSION_COMPONENTS[activeKey];
   const editorDef = editor ? BUILD_MODULES.find((m) => m.key === editor.module_type) : null;
 
   return (
     <div className="mx-auto w-full max-w-2xl space-y-5">
-      <BuilderHeader
+      <BuilderHUD
         businessName={state.model.name}
         fit={state.fit}
-        hustleCode={state.dna ? state.dna.hustle_code : null}
-        percent={percent}
+        dna={state.dna}
+        avatar={avatar}
+        acceptedKeys={acceptedKeys}
       />
 
-      {allAccepted ? (
+      <MissionMap
+        modules={BUILD_MODULES.map((m, i) => ({
+          ...m,
+          accepted: !!byModule[m.key].accepted,
+          locked: !isUnlocked(i),
+          active: activeKey === m.key,
+        }))}
+        onSelect={(key) => {
+          setActiveKey(key);
+          setGenError(null);
+          window.scrollTo({ top: 0 });
+        }}
+      />
+
+      {allAccepted && (
         <div className="rounded-2xl border-2 border-primary/40 bg-brand-gradient-soft p-6 text-center">
           <div className="text-xs font-semibold tracking-[0.25em] text-primary">BUSINESS BUILT</div>
           <h2 className="mt-2 text-2xl font-semibold tracking-tight text-foreground">
@@ -409,66 +454,56 @@ export default function Build() {
             <ArrowRight className="h-4 w-4" />
           </Link>
           <p className="mt-3 text-[11px] text-muted-foreground">
-            You can still revise any module below — Launch Mode uses your accepted versions.
+            You can still revise any mission below — Launch Mode uses your locked-in versions.
           </p>
         </div>
-      ) : null}
-
-      <ModuleNav
-        modules={BUILD_MODULES.map((m, i) => ({
-          ...m,
-          accepted: !!byModule[m.key].accepted,
-          locked: !isUnlocked(i),
-        }))}
-        activeKey={activeKey}
-        onSelect={(key) => {
-          setActiveKey(key);
-          setGenError(null);
-          window.scrollTo({ top: 0 });
-        }}
-      />
+      )}
 
       {generating === activeKey ? (
         <GenerationOverlay
           acceptedMap={BUILD_MODULES.map((m) => !!byModule[m.key].accepted)}
           activeIndex={idx}
-          label={def.label}
+          label={meta.title}
         />
       ) : (
-        <ModulePanel
-          num={def.num}
-          label={def.label}
-          desc={def.desc}
-          status={slot.accepted && !slot.draft ? 'accepted' : display ? 'draft' : 'empty'}
+        <MissionShell
+          num={meta.num}
+          title={meta.title}
+          objective={meta.objective}
+          status={slot.accepted && !slot.draft ? 'accepted' : slot.draft ? 'draft' : 'empty'}
           reviewNeeded={reviewNeeded(activeKey)}
-          actions={actionsFor(activeKey)}
+          justAccepted={celebrate === activeKey}
+          onRegenerate={
+            activeKey === 'sales'
+              ? null
+              : slot.draft || slot.accepted
+                ? () => handleGenerate(activeKey, {}, true)
+                : null
+          }
+          onEdit={slot.draft || slot.accepted ? () => setEditor(slot.draft || slot.accepted) : null}
+          regenerating={generating === activeKey}
         >
-          {display ? (
-            activeKey === 'brand' ? (
-              <BrandModule
-                content={display.content}
-                onPickName={handlePickName}
-                onTryNames={() => handleGenerate('brand', {}, true)}
-                picking={brandPicking}
-              />
-            ) : (
-              <Display content={display.content} />
-            )
-          ) : (
-            <p className="text-sm leading-relaxed text-muted-foreground">
-              Not generated yet. This module uses one AI request built from your real data — nothing else is
-              regenerated when it changes.
-            </p>
-          )}
-          {genError && (
-            <p className="rounded-xl border border-destructive/30 bg-destructive/10 p-3 text-xs text-foreground/90">
-              {genError}
-            </p>
-          )}
-        </ModulePanel>
+          <Mission
+            content={(slot.draft || slot.accepted)?.content || null}
+            accepted={!!slot.accepted && !slot.draft}
+            model={state.model}
+            busy={keeping}
+            generating={generating === activeKey}
+            brandPicking={brandPicking}
+            onGenerate={(opts) => handleGenerate(activeKey, opts || {})}
+            onConfirm={(patch) => confirmMission(activeKey, patch)}
+            onPickName={handlePickName}
+          />
+        </MissionShell>
       )}
 
-      {slot.accepted && hasNext && (
+      {genError && (
+        <p className="rounded-xl border border-destructive/30 bg-destructive/10 p-3 text-xs text-foreground/90">
+          {genError}
+        </p>
+      )}
+
+      {slot.accepted && idx < BUILD_MODULES.length - 1 && (
         <button
           onClick={() => {
             setActiveKey(BUILD_MODULES[idx + 1].key);
@@ -477,7 +512,7 @@ export default function Build() {
           }}
           className="w-full rounded-full bg-brand-gradient py-3 text-sm font-semibold text-white transition hover:scale-[1.01]"
         >
-          NEXT: {BUILD_MODULES[idx + 1].label}
+          NEXT MISSION: {MISSION_META[BUILD_MODULES[idx + 1].key].title}
         </button>
       )}
 
@@ -498,7 +533,7 @@ export default function Build() {
       {editor && (
         <StructuredEditor
           open
-          title={editorDef ? `${editorDef.num} ${editorDef.label} — EDIT` : 'EDIT'}
+          title={`${MISSION_META[editor.module_type].num} ${MISSION_META[editor.module_type].title} — REFINE`}
           content={editor.content}
           onClose={() => setEditor(null)}
           onSave={handleEditSave}

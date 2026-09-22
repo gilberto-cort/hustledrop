@@ -255,7 +255,16 @@ Do not imply any name is legally available.`,
     };
   },
 
-  sales: (ctx) => ({
+  sales: (ctx, options = {}) => {
+    const PITCH_TONE = {
+      friendly: 'PITCH TONE: warm and friendly — casual, human, low-pressure.',
+      direct: 'PITCH TONE: direct and clear — short sentences, to the point, but never pushy.',
+      value: 'PITCH TONE: value-first — lead with what the customer gets before asking for anything.',
+    };
+    const toneLine = PITCH_TONE[options.tone]
+      ? `\n${PITCH_TONE[options.tone]}\nThis user-chosen tone takes priority over the default sales-comfort adaptation of tone.`
+      : '';
+    return {
     prompt: `You are HustleDrop's Business Builder, generating Module 05 — SALES.
 
 ${contextBlock(ctx)}
@@ -263,7 +272,7 @@ ${contextBlock(ctx)}
 The user has accepted a customer segment and an offer (in previously_approved_builder_choices). The sales kit must speak to THAT customer about THAT offer.
 
 ${constraintsBlock(ctx)}
-${dnaBlock(ctx)}
+${dnaBlock(ctx)}${toneLine}
 
 ${SAFETY}
 
@@ -296,7 +305,8 @@ Everything must feel personal and specific. No deceptive urgency. No spam — al
       },
       required: ['introduction', 'dm_script', 'email_script', 'follow_up_1', 'follow_up_2', 'common_objection', 'objection_response', 'soft_close', 'call_to_action'],
     },
-  }),
+    },
+  },
 
   marketing: (ctx) => ({
     prompt: `You are HustleDrop's Business Builder, generating Module 06 — MARKETING.
