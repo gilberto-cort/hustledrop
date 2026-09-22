@@ -1,7 +1,7 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.44';
 import { secrets } from 'base44:runtime';
 import {
-  findEntitlement, PURCHASE_PRODUCT, PURCHASE_AMOUNT_USD,
+  findEntitlement, PURCHASE_PRODUCT, PURCHASE_AMOUNT_USD, stripeGet,
 } from '../../shared/entitlement.js';
 
 // CREATE CHECKOUT — starts the $19 one-time "Build My Business" purchase for
@@ -35,12 +35,11 @@ export default async function(req) {
       5
     );
     const pending = (pendingRows || [])[0] || null;
-    console.log('createCheckout pending:', pending && pending.id, pending && pending.provider_checkout_id);
+    let reuseSession = null;
     if (pending && pending.provider_checkout_id) {
-      const session = await stripeGetSafe(`/v1/checkout/sessions/${pending.provider_checkout_id}`);
-      console.log('createCheckout reuse_session:', session && session.status, session && session.error && session.error.message);
-      if (session && !session.error && session.status === 'open' && session.url) {
-        return Response.json({ status: 'checkout_started', url: session.url, reused: true });
+      reuseSession = await stripeGetSafe(`/v1/checkout/sessions/${pending.provider_checkout_id}`);
+      if (reuseSession && !reuseSession.error && reuseSession.status === 'open' && reuseSession.url) {
+        return Response.json({ status: 'checkout_started', url: reuseSession.url, reused: true });
       }
     }
 
