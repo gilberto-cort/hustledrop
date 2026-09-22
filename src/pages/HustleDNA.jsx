@@ -14,6 +14,7 @@ import DnaSectionCard from '@/components/dna/DnaSectionCard';
 import DnaDimensionsPanel from '@/components/dna/DnaDimensionsPanel';
 import DnaScoresPanel from '@/components/dna/DnaScoresPanel';
 import CharacterPicker from '@/components/dna/CharacterPicker';
+import SelectedCharacterBanner from '@/components/dna/SelectedCharacterBanner';
 import DnaShareCard from '@/components/dna/DnaShareCard';
 
 export default function HustleDNA() {
@@ -94,10 +95,12 @@ export default function HustleDNA() {
   }
 
   const primaryAvatars = avatars.filter((a) => a.dna_type === dna.primary_type && a.active !== false);
-  const selectedAvatar = avatars.find((a) => a.id === selectedAvatarId) || primaryAvatars[0] || null;
+  const chosenAvatar = avatars.find((a) => a.id === selectedAvatarId) || null;
+  const selectedAvatar = chosenAvatar || primaryAvatars[0] || null;
 
   return (
     <div className="mx-auto w-full max-w-2xl space-y-6">
+      {chosenAvatar && <SelectedCharacterBanner avatar={chosenAvatar} dnaType={dna.primary_type} />}
       <DnaTypeHeader dna={dna} />
       <DnaBuildStyle dna={dna} />
       <DnaStrengthsTraps dna={dna} />

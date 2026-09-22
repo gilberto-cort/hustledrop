@@ -8,15 +8,20 @@
     },
     "presentation": {
       "type": "string",
-      "description": "Visual presentation style"
+      "description": "Cosmetic presentation style (masculine / feminine)"
     },
     "sprite_asset": {
       "type": "string",
-      "description": "Sprite asset URL (pixel-art/RPG styling added later)"
+      "description": "Official pixel-art sprite URL (transparent PNG/WebP). Empty = labelled placeholder slot."
     },
     "display_name": {
       "type": "string",
       "description": "Display name for the avatar"
+    },
+    "level": {
+      "type": "number",
+      "default": 1,
+      "description": "Cosmetic progression level (1=Explorer, 2=Founder, 3=Launcher, 4=Entrepreneur). Never affects scoring or matching."
     },
     "active": {
       "type": "boolean",

@@ -59,6 +59,18 @@ export const STRENGTHS = {
   communicator: 'Communicator',
 };
 
+// Gamification foundation — levels unlock only through real milestones.
+export const AVATAR_LEVELS = {
+  1: 'EXPLORER',
+  2: 'FOUNDER',
+  3: 'LAUNCHER',
+  4: 'ENTREPRENEUR',
+};
+
+export function levelName(level) {
+  return AVATAR_LEVELS[level || 1] || 'EXPLORER';
+}
+
 export const TRAPS = {
   shiny_object: 'Shiny Object Syndrome',
   overbuilding: 'Overbuilding',

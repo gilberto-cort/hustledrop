@@ -2,9 +2,11 @@ import React from 'react';
 import { Image } from '@/components/ui/image';
 import { DNA_TYPES } from '@/lib/dnaDisplay';
 
-// Renders an archetype sprite. Approved pixel-art assets are assigned by an
-// admin via the Avatar record's sprite_asset field. Until then a clean,
-// clearly-labelled placeholder container is shown — no substitute artwork.
+// Sprite container for the official HustleDrop pixel-art assets.
+// Artwork: transparent PNG/WebP rendered with object-fit CONTAIN — characters
+// are never cropped. Pixel edges are preserved (no blur, no aggressive
+// upscaling). Until an asset is assigned, a clearly-labelled placeholder slot
+// is shown — no substitute artwork is generated.
 export default function SpriteDisplay({ avatar, size = 'md' }) {
   const meta = DNA_TYPES[avatar?.dna_type] || {};
   const slot = `${meta.code || '?'}-${avatar?.presentation === 'feminine' ? 'F' : 'M'}`;
@@ -12,8 +14,13 @@ export default function SpriteDisplay({ avatar, size = 'md' }) {
 
   if (avatar?.sprite_asset) {
     return (
-      <div className={`${box} overflow-hidden rounded-lg border-2 border-white/20 bg-white/5`}>
-        <Image src={avatar.sprite_asset} alt={avatar.display_name} className="pixelated h-full w-full" />
+      <div className={`${box} overflow-hidden rounded-lg border-2 border-white/20 bg-white/[0.03]`}>
+        <Image
+          src={avatar.sprite_asset}
+          alt={avatar.display_name || slot}
+          fittingType="fit"
+          className="pixelated h-full w-full object-contain"
+        />
       </div>
     );
   }
