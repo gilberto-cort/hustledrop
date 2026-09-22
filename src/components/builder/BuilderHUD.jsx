@@ -19,8 +19,11 @@ export default function BuilderHUD({ businessName, fit, dna, avatar, acceptedKey
       <div className="flex items-center gap-3.5">
         <SpriteDisplay avatar={avatar} size="sm" />
         <div className="min-w-0 flex-1">
-          <div className="font-mono text-[9px] font-bold tracking-widest text-primary">
-            LEVEL {level} · {levelName(level).toUpperCase()}
+          <div
+            className="font-mono text-[9px] font-bold tracking-widest text-primary"
+            title="Your character's adventure level — it grows through Launch and Grow, separate from Build XP."
+          >
+            CHARACTER · LV.{level} {levelName(level).toUpperCase()}
           </div>
           <h1 className="truncate text-xl font-bold tracking-tight text-foreground">{businessName}</h1>
           <div className="mt-1 flex flex-wrap gap-1.5">
@@ -41,7 +44,7 @@ export default function BuilderHUD({ businessName, fit, dna, avatar, acceptedKey
 
       <div className="mt-4">
         <div className="flex items-baseline justify-between font-mono text-[9px] font-bold tracking-widest text-muted-foreground">
-          <span>BUILD XP</span>
+          <span>BUILD XP · THIS BUSINESS</span>
           <span className="text-primary">{xp} / {MAX_BUILD_XP}</span>
         </div>
         <div className="mt-1.5 h-2 overflow-hidden rounded-full bg-white/10">
@@ -52,7 +55,8 @@ export default function BuilderHUD({ businessName, fit, dna, avatar, acceptedKey
         </div>
       </div>
 
-      <div className="mt-4 flex flex-wrap gap-1.5">
+      <div className="mt-4 font-mono text-[9px] font-bold tracking-widest text-muted-foreground">MISSION EMBLEMS</div>
+      <div className="mt-2 flex flex-wrap gap-1.5">
         {BUILD_MODULES.map((m) => {
           const unlocked = acceptedKeys.includes(m.key);
           return (
