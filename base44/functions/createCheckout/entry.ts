@@ -1,7 +1,7 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.44';
 import { secrets } from 'base44:runtime';
 import {
-  findEntitlement, PURCHASE_PRODUCT, PURCHASE_AMOUNT_USD, stripeGet,
+  findEntitlement, fulfillPurchase, PURCHASE_PRODUCT, PURCHASE_AMOUNT_USD, stripeGet,
 } from '../../shared/entitlement.js';
 import { getAppOrigin } from '../../shared/appOrigin.js';
 
@@ -50,6 +50,19 @@ export default async function(req) {
       }
       // An open session that points at an outdated origin is never reused — a
       // fresh session is created below so the return always lands on this app.
+
+      // PAID-BUT-PENDING GUARD — the user already completed this checkout on
+      // Stripe but fulfillment hasn't run yet (webhook / return-verify still
+      // in flight). NEVER charge again: fulfill this purchase idempotently
+      // and tell the client it's entitled so the next reload unlocks.
+      if (reuseSession && !reuseSession.error && reuseSession.payment_status === 'paid') {
+        const out = await fulfillPurchase(svc, pending, {
+          provider_transaction_id: reuseSession.payment_intent || null,
+        });
+        if (out.purchase && out.purchase.status === 'completed') {
+          return Response.json({ status: 'already_entitled', recovered: true });
+        }
+      }
     }
 
     // Book the pending purchase BEFORE the session so the session can carry

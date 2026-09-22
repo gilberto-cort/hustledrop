@@ -6,7 +6,7 @@ import { Briefcase, ArrowRight, RotateCcw, Check } from 'lucide-react';
 import {
   BUILD_MODULES, loadBuilderState, generateModule, acceptAsset, saveEditedContent,
 } from '@/lib/builderService';
-import { hasEntitlement, startCheckout, verifyCheckoutSession } from '@/lib/paymentService';
+import { hasEntitlement, startCheckout, verifyCheckoutWithRetry } from '@/lib/paymentService';
 import { useAuth } from '@/lib/AuthContext';
 import PaywallCard from '@/components/builder/PaywallCard';
 import PurchaseSuccessOverlay from '@/components/builder/PurchaseSuccessOverlay';
@@ -41,6 +41,8 @@ export default function Build() {
   const [phase, setPhase] = useState('loading'); // loading | no-selection | paywall | error | ready
   // Payment states: not_started | starting | processing | failed | cancelled | iframe_blocked
   const [payment, setPayment] = useState({ state: 'not_started' });
+  const [verifyingSession, setVerifyingSession] = useState(null);
+  const [verifyAttempt, setVerifyAttempt] = useState(0);
   const [showUnlocked, setShowUnlocked] = useState(false);
   const [loadKey, setLoadKey] = useState(0);
   const [state, setState] = useState(null);
@@ -89,7 +91,8 @@ export default function Build() {
     };
   }, [loadKey, user]);
 
-  // CHECKOUT RETURN — verify with the server before unlocking anything.
+  // CHECKOUT RETURN — never trust the success URL: the session id is sent to
+  // the server, which re-checks with Stripe and fulfills idempotently.
   useEffect(() => {
     const urlParams = new URLSearchParams(window.location.search);
     const result = urlParams.get('checkout');
@@ -97,33 +100,48 @@ export default function Build() {
     if (!result) return;
     window.history.replaceState({}, '', '/build');
     if (result === 'success' && sessionId) {
-      setPayment({ state: 'starting' });
-      (async () => {
-        try {
-          const res = await verifyCheckoutSession(sessionId);
-          if (res.status === 'paid') {
-            trackEvent('purchase_completed', { product_key: 'build_my_business' });
-            setPayment({ state: 'not_started' });
-            setLoadKey((k) => k + 1);
-            const seenKey = `hd_unlocked_${sessionId}`;
-            if (!sessionStorage.getItem(seenKey)) {
-              sessionStorage.setItem(seenKey, '1');
-              setShowUnlocked(true);
-            }
-          } else if (res.status === 'failed') {
-            setPayment({ state: 'failed' });
-          } else {
-            setPayment({ state: 'processing' });
-          }
-        } catch (e) {
-          setPayment({ state: 'processing' });
-        }
-      })();
+      setVerifyingSession(sessionId);
     } else if (result === 'cancelled') {
       setPayment({ state: 'cancelled' });
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  // VERIFICATION — bounded-backoff retries while Stripe still reports
+  // processing; CHECK AGAIN re-runs it. While a confirmed payment is being
+  // reconciled, no new purchase CTA is shown.
+  useEffect(() => {
+    if (!verifyingSession) return undefined;
+    let cancelled = false;
+    (async () => {
+      setPayment({ state: 'verifying' });
+      try {
+        const res = await verifyCheckoutWithRetry(verifyingSession);
+        if (cancelled) return;
+        if (res.status === 'paid') {
+          trackEvent('purchase_completed', { product_key: 'build_my_business' });
+          setPayment({ state: 'not_started' });
+          setLoadKey((k) => k + 1);
+          const seenKey = `hd_unlocked_${verifyingSession}`;
+          if (!sessionStorage.getItem(seenKey)) {
+            sessionStorage.setItem(seenKey, '1');
+            setShowUnlocked(true);
+          }
+          setVerifyingSession(null);
+        } else if (res.status === 'failed') {
+          setPayment({ state: 'failed' });
+          setVerifyingSession(null);
+        } else {
+          setPayment({ state: 'processing' });
+        }
+      } catch (e) {
+        if (!cancelled) setPayment({ state: 'processing' });
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [verifyingSession, verifyAttempt]);
 
   const assets = useMemo(() => (state ? state.assets || [] : []), [state]);
 
@@ -267,7 +285,9 @@ export default function Build() {
 
   // BUILD MY BUSINESS — $19. Double-tap protected; iframe-aware.
   const handleStartCheckout = async () => {
-    if (payment.state === 'starting') return;
+    // A new checkout can never start while a payment is being verified or
+    // reconciled — that's how duplicate charges happen.
+    if (payment.state === 'starting' || payment.state === 'verifying' || payment.state === 'processing') return;
     setPayment({ state: 'starting' });
     try {
       const res = await startCheckout();
@@ -290,13 +310,15 @@ export default function Build() {
 
   if (phase === 'paywall') {
     return (
-      <div className="mx-auto w-full max-w-2xl space-y-5">
+      <div className="mx-auto w-full max-w-2xl space-y-5 pb-[calc(1.5rem+env(safe-area-inset-bottom))]">
         <PaywallCard
           modelName={state ? state.model.name : 'your business'}
           fit={state ? state.fit : null}
+          dna={state ? state.dna : null}
           payment={payment}
           busy={payment.state === 'starting'}
           onStartCheckout={handleStartCheckout}
+          onRetryVerify={() => setVerifyAttempt((a) => a + 1)}
         />
       </div>
     );

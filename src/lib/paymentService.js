@@ -37,3 +37,18 @@ export async function verifyCheckoutSession(sessionId) {
   const res = await base44.functions.invoke('verifyCheckout', { session_id: sessionId });
   return res.data;
 }
+
+const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+
+// VERIFY WITH BOUNDED BACKOFF — a session can still report 'processing'
+// right after a successful return. Each retry re-checks server-side (the
+// server re-verifies with Stripe and fulfills idempotently), so replaying
+// this can never double-fulfill.
+export async function verifyCheckoutWithRetry(sessionId, attempts = 3) {
+  let res = await verifyCheckoutSession(sessionId);
+  for (let i = 0; i < attempts && res && res.status === 'processing'; i++) {
+    await delay(1500 * (i + 1));
+    res = await verifyCheckoutSession(sessionId);
+  }
+  return res;
+}

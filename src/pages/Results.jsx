@@ -15,6 +15,7 @@ import BusinessSnapshot from '@/components/results/BusinessSnapshot';
 import DnaConnectionSection from '@/components/results/DnaConnectionSection';
 import FirstMoveSection from '@/components/results/FirstMoveSection';
 import SelectionSuccessCard from '@/components/results/SelectionSuccessCard';
+import AdventureStartPreview from '@/components/results/AdventureStartPreview';
 import AltMatches from '@/components/results/AltMatches';
 import CompareMatchesModal from '@/components/results/CompareMatchesModal';
 import MatchShareCard from '@/components/results/MatchShareCard';
@@ -310,6 +311,9 @@ export default function Results() {
 
   const primary = matches[0];
   const alternates = matches.slice(1, 3);
+  // The selected business, resolved from the same loaded matches — drives the
+  // free adventure preview with the user's REAL model data (never hardcoded).
+  const selectedMatch = selection ? matches.find((m) => m.model.id === selection.modelId) || null : null;
 
   return (
     <div className="mx-auto w-full max-w-2xl space-y-5">
@@ -337,7 +341,15 @@ export default function Results() {
       <DnaConnectionSection dna={dna} />
 
       {selection ? (
-        <SelectionSuccessCard businessName={selection.name} />
+        <>
+          <SelectionSuccessCard businessName={selection.name} />
+          <AdventureStartPreview
+            model={selectedMatch ? selectedMatch.model : null}
+            fit={selectedMatch ? selectedMatch.fit : null}
+            dna={dna}
+            avatar={avatar}
+          />
+        </>
       ) : (
         <FirstMoveSection match={primary} onSelect={handleSelect} busy={selectBusy} />
       )}
