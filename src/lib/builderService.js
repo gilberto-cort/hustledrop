@@ -56,9 +56,21 @@ export async function loadBuilderState() {
   };
 }
 
+// Only these explicit, JSON-safe string fields are ever forwarded to the
+// server. A stray React event or SDK object in options can never reach the
+// request serializer — anything else is silently dropped.
+const SAFE_OPTION_KEYS = ['tone', 'stage', 'selected_name'];
+
 // One module per AI request — never the whole builder.
 export async function generateModule(module_type, options = {}) {
-  const res = await base44.functions.invoke('builderGenerate', { module_type, options });
+  const safeOptions = {};
+  if (options && typeof options === 'object' && !Array.isArray(options)) {
+    for (const k of SAFE_OPTION_KEYS) {
+      const v = options[k];
+      if (typeof v === 'string' && v) safeOptions[k] = v;
+    }
+  }
+  const res = await base44.functions.invoke('builderGenerate', { module_type, options: safeOptions });
   return res.data;
 }
 

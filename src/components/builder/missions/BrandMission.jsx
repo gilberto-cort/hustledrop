@@ -36,7 +36,7 @@ export default function BrandMission({ content, accepted, busy, generating, bran
           Five name options for your business, suited to your locked-in customer and offer.
         </p>
         <button
-          onClick={onGenerate}
+          onClick={() => onGenerate()}
           disabled={generating}
           className="mt-4 w-full rounded-full bg-brand-gradient py-3 text-sm font-bold tracking-wider text-white transition hover:scale-[1.01] disabled:opacity-50"
         >

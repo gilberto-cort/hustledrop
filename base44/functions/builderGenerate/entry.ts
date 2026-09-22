@@ -63,7 +63,7 @@ export default async function(req) {
       // provider rejections) are never retried.
       const msg = String((e && e.message) || e);
       const transient = /timeout|timed out|temporarily|rate.?limit|overloaded|try again|econnreset|503|429/i.test(msg);
-      console.error('[builderGenerate] LLM failed for module=' + module_type + (transient ? ' (transient)' : ' (permanent)'), e);
+      console.error('[builderGenerate] LLM failed for module=' + module_type + (transient ? ' (transient)' : ' (permanent)') + ': ' + msg);
       return Response.json({ status: 'generation_error', error: msg, transient });
     }
 
@@ -94,7 +94,8 @@ export default async function(req) {
   } catch (error) {
     // The 500 path is logged with the requested module so unexpected server
     // failures (context loading, entitlement, persistence) are traceable.
-    console.error('[builderGenerate] unexpected failure for module=' + (body && body.module_type), error);
+    // Safe metadata only — never whole objects.
+    console.error('[builderGenerate] unexpected failure for module=' + (body && body.module_type) + ': ' + String((error && error.message) || error));
     return Response.json({ error: error.message }, { status: 500 });
   }
 }

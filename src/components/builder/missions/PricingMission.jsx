@@ -91,7 +91,7 @@ export default function PricingMission({ content, accepted, model, busy, generat
           calculator.
         </p>
         <button
-          onClick={onGenerate}
+          onClick={() => onGenerate()}
           disabled={generating}
           className="mt-4 w-full rounded-full bg-brand-gradient py-3 text-sm font-bold tracking-wider text-white transition hover:scale-[1.01] disabled:opacity-50"
         >

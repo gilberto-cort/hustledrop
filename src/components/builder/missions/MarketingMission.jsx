@@ -33,7 +33,7 @@ export default function MarketingMission({ content, accepted, busy, generating, 
           A small campaign kit for your customer and offer — only the channels that genuinely fit this business.
         </p>
         <button
-          onClick={onGenerate}
+          onClick={() => onGenerate()}
           disabled={generating}
           className="mt-4 w-full rounded-full bg-brand-gradient py-3 text-sm font-bold tracking-wider text-white transition hover:scale-[1.01] disabled:opacity-50"
         >
