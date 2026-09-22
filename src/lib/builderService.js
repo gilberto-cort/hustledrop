@@ -34,7 +34,9 @@ export function acceptedByModule(assets) {
 }
 
 export async function loadBuilderState() {
-  const selections = await base44.entities.SelectedBusiness.list('-created_date', 10);
+  // Active = most recently SELECTED (selected_at), not newest record —
+  // switching back to an older paid business must make it active.
+  const selections = await base44.entities.SelectedBusiness.list('-selected_at', 10);
   const selection = selections && selections[0];
   if (!selection) return { selection: null };
 

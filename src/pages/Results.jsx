@@ -14,7 +14,8 @@ import TradeoffSection from '@/components/results/TradeoffSection';
 import BusinessSnapshot from '@/components/results/BusinessSnapshot';
 import DnaConnectionSection from '@/components/results/DnaConnectionSection';
 import FirstMoveSection from '@/components/results/FirstMoveSection';
-import SelectionSuccessCard from '@/components/results/SelectionSuccessCard';
+import ActiveBusinessSection from '@/components/results/ActiveBusinessSection';
+import { hasEntitlement } from '@/lib/paymentService';
 import AdventureStartPreview from '@/components/results/AdventureStartPreview';
 import AltMatches from '@/components/results/AltMatches';
 import CompareMatchesModal from '@/components/results/CompareMatchesModal';
@@ -35,6 +36,7 @@ export default function Results() {
   const [avatar, setAvatar] = useState(null);
   const [hasChosenAvatar, setHasChosenAvatar] = useState(false);
   const [selection, setSelection] = useState(undefined); // undefined = loading, null = none
+  const [paidBusinesses, setPaidBusinesses] = useState([]); // businesses with a completed purchase
   const [selectBusy, setSelectBusy] = useState(false);
   const [compareOpen, setCompareOpen] = useState(false);
   const [shareOpen, setShareOpen] = useState(false);
@@ -117,7 +119,10 @@ export default function Results() {
         if (cancelled) return;
         setMatches(view);
         setConfidence(data.confidence);
-        setPhase('analyzing');
+        // The staged animation plays ONLY for a genuinely new computation
+        // (matchEngine reports created:true). A persisted set renders
+        // directly — refresh, back-navigation and revisits never replay it.
+        setPhase(data.created ? 'analyzing' : 'ready');
       } catch (e) {
         // Cold starts and transient network hiccups fail once — retry silently
         // before ever showing an error, so the user never sees a false "not
@@ -145,14 +150,34 @@ export default function Results() {
         if (!cancelled) setDnaError(true);
       }
 
-      // Existing selection (returning users)
+      // Active selected business + purchased businesses (returning users).
+      // Active = most recently SELECTED (selected_at), not newest record —
+      // switching back to an older paid business must make it active.
       try {
-        const sel = await base44.entities.SelectedBusiness.list('-created_date', 1);
-        const rec = sel?.[0];
-        if (rec && !cancelled) {
-          const model = await base44.entities.BusinessModel.get(rec.business_model_id);
+        const sels = await base44.entities.SelectedBusiness.list('-selected_at', 20);
+        const rec = (sels || [])[0];
+        const models = {};
+        const getModel = async (id) => {
+          if (!models[id]) models[id] = await base44.entities.BusinessModel.get(id);
+          return models[id];
+        };
+        const paid = [];
+        for (const s of sels || []) {
+          try {
+            const entitled = await hasEntitlement(s.id);
+            if (!entitled) continue;
+            const m = await getModel(s.business_model_id);
+            paid.push({ name: m.name, modelId: s.business_model_id, matchResultId: s.match_result_id });
+          } catch (e) {
+            // unreadable entry — never blocks the active business
+          }
+        }
+        if (cancelled) return;
+        setPaidBusinesses(paid);
+        if (rec) {
+          const model = await getModel(rec.business_model_id);
           if (!cancelled) setSelection({ name: model.name, modelId: rec.business_model_id });
-        } else if (!cancelled && !rec) {
+        } else if (!cancelled) {
           setSelection(null);
         }
       } catch (e) {
@@ -186,6 +211,22 @@ export default function Results() {
       await selectBusiness(user, match);
       setSelection({ name: match.model.name, modelId: match.model.id });
       trackEvent('business_selected', { business_model_id: match.model.id, rank: match.rank });
+    } catch (e) {
+      // selection is retried by pressing the button again
+    } finally {
+      setSelectBusy(false);
+    }
+  };
+
+  // SWITCH BACK — re-activates the SAME purchased selection record (its
+  // entitlement stays attached — never a second charge).
+  const handleSwitchBusiness = async (b) => {
+    if (selectBusy) return;
+    setSelectBusy(true);
+    try {
+      await selectBusiness(user, { model: { id: b.modelId }, result: { id: b.matchResultId } });
+      setSelection({ name: b.name, modelId: b.modelId });
+      trackEvent('business_switched', { business_model_id: b.modelId });
     } catch (e) {
       // selection is retried by pressing the button again
     } finally {
@@ -327,10 +368,12 @@ export default function Results() {
 
       {dnaError && !dna && (
         <div className="flex flex-col items-center gap-3 rounded-2xl border border-white/10 bg-white/[0.02] p-6 text-center">
-          <p className="text-sm text-muted-foreground">Your HustleDNA couldn't be loaded right now.</p>
+          <p className="text-sm text-muted-foreground">
+            Your HustleDNA couldn't be loaded right now — it's saved to your account and nothing was lost.
+          </p>
           <Button onClick={retryDna} variant="outline" className="rounded-full text-xs font-semibold">
             <RotateCcw className="mr-1.5 h-3.5 w-3.5" />
-            RECALCULATE MY HUSTLEDNA
+            RETRY LOADING MY HUSTLEDNA
           </Button>
         </div>
       )}
@@ -342,7 +385,16 @@ export default function Results() {
 
       {selection ? (
         <>
-          <SelectionSuccessCard businessName={selection.name} />
+          <ActiveBusinessSection
+            activeName={selection.name}
+            activeIsLatest={selection.modelId === primary.model.id}
+            latestMatch={primary}
+            latestIsPurchased={paidBusinesses.some((b) => b.modelId === primary.model.id)}
+            otherPurchased={paidBusinesses.filter((b) => b.modelId !== selection.modelId)}
+            busy={selectBusy}
+            onSelectLatest={() => handleSelect(primary)}
+            onSwitchBusiness={handleSwitchBusiness}
+          />
           <AdventureStartPreview
             model={selectedMatch ? selectedMatch.model : null}
             fit={selectedMatch ? selectedMatch.fit : null}

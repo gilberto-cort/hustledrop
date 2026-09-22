@@ -3,7 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { base44 } from '@/api/base44Client';
 import { trackEvent } from '@/lib/analytics';
 import EmptyState from '@/components/EmptyState';
-import { Dna as DnaIcon, ArrowRight, Share2 } from 'lucide-react';
+import { Dna as DnaIcon, ArrowRight, Share2, RotateCcw } from 'lucide-react';
 import { Dialog, DialogContent } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { DNA_TYPES } from '@/lib/dnaDisplay';
@@ -19,11 +19,12 @@ import DnaShareCard from '@/components/dna/DnaShareCard';
 
 export default function HustleDNA() {
   const navigate = useNavigate();
-  const [phase, setPhase] = useState('loading'); // loading | ready | none
+  const [phase, setPhase] = useState('loading'); // loading | ready | none | error
   const [dna, setDna] = useState(null);
   const [avatars, setAvatars] = useState([]);
   const [selectedAvatarId, setSelectedAvatarId] = useState(null);
   const [shareOpen, setShareOpen] = useState(false);
+  const [loadKey, setLoadKey] = useState(0);
 
   useEffect(() => {
     (async () => {
@@ -42,10 +43,13 @@ export default function HustleDNA() {
         setSelectedAvatarId(me?.selected_avatar_id || null);
         setPhase('ready');
       } catch (e) {
-        setPhase('none');
+        // Transient fetch failure ≠ missing DNA. The persisted record is
+        // never touched — RETRY re-reads it, never prompts a recalculation.
+        console.error('[HustleDNA] load failed', e);
+        setPhase('error');
       }
     })();
-  }, []);
+  }, [loadKey]);
 
   const handleSelectAvatar = async (avatarId) => {
     await base44.auth.updateMe({ selected_avatar_id: avatarId });
@@ -65,6 +69,34 @@ export default function HustleDNA() {
     return (
       <div className="flex justify-center py-24">
         <div className="h-8 w-8 animate-spin rounded-full border-4 border-white/10 border-t-primary" />
+      </div>
+    );
+  }
+
+  if (phase === 'error') {
+    return (
+      <div className="space-y-6">
+        <div>
+          <div className="text-xs font-semibold tracking-[0.25em] text-muted-foreground">HUSTLEDNA</div>
+          <h1 className="mt-1 text-2xl font-semibold tracking-tight sm:text-3xl">Your entrepreneurial work-style profile</h1>
+        </div>
+        <EmptyState
+          icon={DnaIcon}
+          title="Your HustleDNA couldn't be loaded right now"
+          description="It's saved to your account — this looks like a temporary connection problem. Nothing was lost and no recalculation is needed."
+          action={
+            <button
+              onClick={() => {
+                setPhase('loading');
+                setLoadKey((k) => k + 1);
+              }}
+              className="inline-flex items-center gap-2 rounded-full bg-brand-gradient px-4 py-2 text-sm font-semibold text-white"
+            >
+              <RotateCcw className="h-4 w-4" />
+              RETRY
+            </button>
+          }
+        />
       </div>
     );
   }

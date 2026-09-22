@@ -35,7 +35,7 @@ export default function Dashboard() {
           base44.entities.HustleProfile.list('-created_date', 1).catch(() => []),
           base44.entities.HustleDNAProfile.list('-created_date', 1).catch(() => []),
           base44.entities.MatchResult.list('-created_date', 10).catch(() => []),
-          base44.entities.SelectedBusiness.list('-created_date', 1).catch(() => []),
+          base44.entities.SelectedBusiness.list('-selected_at', 1).catch(() => []),
           base44.entities.CustomerWin.list('-created_date', 200).catch(() => []),
           base44.entities.LaunchQuest.list('-created_date', 1).catch(() => []),
           base44.entities.Achievement.list('-created_date', 100).catch(() => []),

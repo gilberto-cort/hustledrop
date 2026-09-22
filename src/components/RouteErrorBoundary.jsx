@@ -39,12 +39,12 @@ export default class RouteErrorBoundary extends React.Component {
           </button>
           <button
             onClick={() => {
-              window.location.href = '/build';
+              window.location.href = '/dashboard';
             }}
             className="flex w-full items-center justify-center gap-2 rounded-full border border-white/15 py-3 text-sm font-bold tracking-wider text-foreground/85 transition hover:border-white/30"
           >
             <ArrowLeft className="h-4 w-4" />
-            BACK TO BUILDER
+            BACK TO DASHBOARD
           </button>
         </div>
       </div>

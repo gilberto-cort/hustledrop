@@ -106,6 +106,7 @@ export default function Build() {
         setActiveKey((firstIncomplete || BUILD_MODULES[BUILD_MODULES.length - 1]).key);
         setPhase('ready');
       } catch (e) {
+        console.error('[Build] init failed', e);
         if (!cancelled) setPhase('error');
       }
     })();
@@ -428,13 +429,21 @@ export default function Build() {
         title="Business Builder unavailable right now"
         description="We couldn't load your builder data. Nothing was lost — you can safely try again."
         action={
-          <button
-            onClick={() => setLoadKey((k) => k + 1)}
-            className="inline-flex items-center gap-2 rounded-full bg-brand-gradient px-4 py-2 text-sm font-semibold text-white"
-          >
-            <RotateCcw className="h-4 w-4" />
-            Try again
-          </button>
+          <div className="flex flex-col items-center gap-2">
+            <button
+              onClick={() => setLoadKey((k) => k + 1)}
+              className="inline-flex items-center gap-2 rounded-full bg-brand-gradient px-4 py-2 text-sm font-semibold text-white"
+            >
+              <RotateCcw className="h-4 w-4" />
+              Try again
+            </button>
+            <Link
+              to="/dashboard"
+              className="inline-flex items-center gap-2 rounded-full border border-white/15 px-4 py-2 text-sm font-semibold text-foreground/85 transition hover:border-white/30"
+            >
+              BACK TO DASHBOARD
+            </Link>
+          </div>
         }
       />
     );

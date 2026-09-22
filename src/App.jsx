@@ -21,6 +21,7 @@ import ForgotPassword from '@/pages/ForgotPassword';
 import ResetPassword from '@/pages/ResetPassword';
 import ProtectedRoute from '@/components/ProtectedRoute';
 import RouteErrorBoundary from '@/components/RouteErrorBoundary';
+import AppCrashBoundary from '@/components/AppCrashBoundary';
 import UnauthenticatedRedirect from '@/components/UnauthenticatedRedirect';
 import AdminRoute from '@/components/AdminRoute';
 import AppLayout from '@/components/AppLayout';
@@ -97,15 +98,17 @@ const AuthenticatedApp = () => {
 function App() {
 
   return (
-    <AuthProvider>
-      <QueryClientProvider client={queryClientInstance}>
-        <Router>
-          <ScrollToTop />
-          <AuthenticatedApp />
-        </Router>
-        <Toaster />
-      </QueryClientProvider>
-    </AuthProvider>
+    <AppCrashBoundary>
+      <AuthProvider>
+        <QueryClientProvider client={queryClientInstance}>
+          <Router>
+            <ScrollToTop />
+            <AuthenticatedApp />
+          </Router>
+          <Toaster />
+        </QueryClientProvider>
+      </AuthProvider>
+    </AppCrashBoundary>
   )
 }
 
