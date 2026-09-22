@@ -44,7 +44,7 @@ export default async function(req) {
       const reusable =
         reuseSession && !reuseSession.error && reuseSession.status === 'open' && reuseSession.url &&
         typeof reuseSession.success_url === 'string' &&
-        (!reuseOrigin || reuseSession.success_url.startsWith(`${reuseOrigin}/`));
+        !!reuseOrigin && reuseSession.success_url.startsWith(`${reuseOrigin}/`);
       if (reusable) {
         return Response.json({ status: 'checkout_started', url: reuseSession.url, reused: true });
       }
@@ -81,6 +81,17 @@ export default async function(req) {
     const appOrigin = getAppOrigin(req);
     if (!appOrigin) {
       console.log('createCheckout error: could not derive app origin from request');
+      console.log('originDebug req.url:', req.url);
+      try {
+        const h = req.headers;
+        console.log('originDebug origin:', h.get('origin'));
+        console.log('originDebug referer:', h.get('referer'));
+        console.log('originDebug x-forwarded-host:', h.get('x-forwarded-host'));
+        console.log('originDebug x-forwarded-proto:', h.get('x-forwarded-proto'));
+        console.log('originDebug host:', h.get('host'));
+      } catch (e) {
+        console.log('originDebug headers error:', e.message);
+      }
       return Response.json({ status: 'checkout_error' }, { status: 500 });
     }
     const appId = secrets.get('BASE44_APP_ID') || Deno.env.get('BASE44_APP_ID') || '';
