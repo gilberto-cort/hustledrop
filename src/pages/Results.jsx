@@ -99,6 +99,7 @@ export default function Results() {
         }
         const view = (data.matches || []).map((m) => ({
           result: { id: m.result_id, rank: m.rank },
+          confidence: m.match_confidence,
           model: m.business_model,
           fit: m.personal_fit,
           factors: (m.score_breakdown || {}).factors || {},
@@ -149,7 +150,7 @@ export default function Results() {
         const rec = sel?.[0];
         if (rec && !cancelled) {
           const model = await base44.entities.BusinessModel.get(rec.business_model_id);
-          if (!cancelled) setSelection({ name: model.name });
+          if (!cancelled) setSelection({ name: model.name, modelId: rec.business_model_id });
         } else if (!cancelled && !rec) {
           setSelection(null);
         }
@@ -182,7 +183,7 @@ export default function Results() {
     setSelectBusy(true);
     try {
       await selectBusiness(user, match);
-      setSelection({ name: match.model.name });
+      setSelection({ name: match.model.name, modelId: match.model.id });
       trackEvent('business_selected', { business_model_id: match.model.id, rank: match.rank });
     } catch (e) {
       // selection is retried by pressing the button again
@@ -341,7 +342,15 @@ export default function Results() {
         <FirstMoveSection match={primary} onSelect={handleSelect} busy={selectBusy} />
       )}
 
-      {alternates.length > 0 && <AltMatches matches={alternates} onSelect={handleSelect} />}
+      {alternates.length > 0 && (
+        <AltMatches
+          matches={alternates}
+          dna={dna}
+          selectedModelId={selection ? selection.modelId : null}
+          busy={selectBusy}
+          onSelect={handleSelect}
+        />
+      )}
 
       <div className="grid grid-cols-2 gap-3">
         <Button

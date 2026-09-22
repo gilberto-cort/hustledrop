@@ -10,7 +10,7 @@ import { startupRangeLabel, workModeLabel, speedLabel, positiveText, negativeTex
 // `locked` / `unlockHint` reserve the referral-gate architecture: a future
 // pass will unlock #2 and #3 via qualified referrals. Nothing is locked yet and
 // no referral button is rendered — the props only define where the gate goes.
-export default function AltMatchCard({ match, onView, locked = false, unlockHint = null }) {
+export default function AltMatchCard({ match, onView, current = false, locked = false, unlockHint = null }) {
   const m = match.model;
   const reason = (match.positives || [])[0];
   const tradeoff = (match.negatives || [])[0];
@@ -43,7 +43,14 @@ export default function AltMatchCard({ match, onView, locked = false, unlockHint
     <div className="rounded-2xl border border-white/15 bg-white/[0.04] p-5 transition hover:border-primary/40">
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
-          <div className="text-[10px] font-semibold tracking-wider text-primary">#{match.rank} HUSTLEMATCH</div>
+          <div className="flex items-center gap-2">
+            <div className="text-[10px] font-semibold tracking-wider text-primary">#{match.rank} HUSTLEMATCH</div>
+            {current && (
+              <span className="rounded-full border border-primary/40 bg-primary/10 px-2 py-0.5 font-mono text-[8px] font-bold tracking-widest text-primary">
+                ✓ CURRENT
+              </span>
+            )}
+          </div>
           <h3 className="mt-1 text-lg font-semibold tracking-tight text-foreground">{m.name}</h3>
           <div className="mt-1 text-xs text-muted-foreground">
             {startupRangeLabel(m)} · {workModeLabel(m)} · {speedLabel(m.speed_to_first_sale)}

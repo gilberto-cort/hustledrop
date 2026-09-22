@@ -5,7 +5,7 @@ import AltMatchDetailModal from '@/components/results/AltMatchDetailModal';
 
 // OTHER STRONG MATCHES — #2 and #3. VIEW MATCH opens the full result for an
 // alternate without deleting the original ranking.
-export default function AltMatches({ matches, onSelect }) {
+export default function AltMatches({ matches, dna, selectedModelId, busy, onSelect }) {
   const [detail, setDetail] = useState(null);
 
   const openDetail = (match) => {
@@ -20,10 +20,22 @@ export default function AltMatches({ matches, onSelect }) {
       </div>
       <div className="space-y-3">
         {matches.map((match) => (
-          <AltMatchCard key={match.model.id} match={match} onView={() => openDetail(match)} />
+          <AltMatchCard
+            key={match.model.id}
+            match={match}
+            current={match.model.id === selectedModelId}
+            onView={() => openDetail(match)}
+          />
         ))}
       </div>
-      <AltMatchDetailModal match={detail} onClose={() => setDetail(null)} onSelect={onSelect} />
+      <AltMatchDetailModal
+        match={detail}
+        isCurrent={!!detail && detail.model.id === selectedModelId}
+        dna={dna}
+        busy={busy}
+        onClose={() => setDetail(null)}
+        onSelect={onSelect}
+      />
     </section>
   );
 }
