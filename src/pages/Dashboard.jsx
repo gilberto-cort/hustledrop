@@ -2,11 +2,13 @@ import React, { useEffect, useState } from 'react';
 import { base44 } from '@/api/base44Client';
 import DnaDashboardCard from '@/components/dna/DnaDashboardCard';
 import MatchStatusCard from '@/components/dashboard/MatchStatusCard';
+import BuilderProgressCard from '@/components/dashboard/BuilderProgressCard';
 import JourneyProgress from '@/components/dashboard/JourneyProgress';
 
 export default function Dashboard() {
   const [selection, setSelection] = useState(undefined); // undefined = loading, null = none
   const [flags, setFlags] = useState(null);
+  const [builder, setBuilder] = useState(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -42,6 +44,23 @@ export default function Dashboard() {
           } catch (e) {
             sel = null;
           }
+
+          try {
+            const acc = await base44.entities.GeneratedAsset.filter(
+              { selected_business_id: selected.id, status: 'accepted' },
+              '-created_date',
+              100
+            );
+            const modulesDone = new Set((acc || []).map((a) => a.module_type)).size;
+            if (!cancelled) {
+              setBuilder({
+                percent: Math.round((modulesDone / 7) * 100),
+                started: (acc || []).length > 0,
+              });
+            }
+          } catch (e) {
+            if (!cancelled) setBuilder(null);
+          }
         }
 
         setSelection(sel);
@@ -75,7 +94,17 @@ export default function Dashboard() {
 
       {flags && selection !== undefined && <MatchStatusCard selection={selection} hasMatches={flags.match} />}
 
-      {flags && <JourneyProgress discover={flags.discover} dna={flags.dna} match={flags.match} selected={!!selection} />}
+      {builder && selection && <BuilderProgressCard percent={builder.percent} started={builder.started} />}
+
+      {flags && (
+        <JourneyProgress
+          discover={flags.discover}
+          dna={flags.dna}
+          match={flags.match}
+          selected={!!selection}
+          buildDone={builder ? builder.percent === 100 : false}
+        />
+      )}
     </div>
   );
 }

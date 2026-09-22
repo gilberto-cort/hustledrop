@@ -1,0 +1,103 @@
+{
+  "name": "GeneratedAsset",
+  "type": "object",
+  "properties": {
+    "user_id": {
+      "type": "string",
+      "description": "Owner user id"
+    },
+    "selected_business_id": {
+      "type": "string",
+      "description": "SelectedBusiness this generated version belongs to"
+    },
+    "module_type": {
+      "type": "string",
+      "description": "Builder module: customer, offer, pricing, brand, sales, marketing or launch",
+      "enum": [
+        "customer",
+        "offer",
+        "pricing",
+        "brand",
+        "sales",
+        "marketing",
+        "launch"
+      ]
+    },
+    "version": {
+      "type": "number",
+      "default": 1,
+      "description": "Version number for this module (TRY ANOTHER creates the next version; previous versions are never deleted)"
+    },
+    "content": {
+      "type": "object",
+      "description": "Generated structured content for this version (plus user edits)",
+      "additionalProperties": true
+    },
+    "status": {
+      "type": "string",
+      "description": "draft = generated/edited but not accepted; accepted = user pressed KEEP IT; archived = superseded by a newer accepted version",
+      "enum": [
+        "draft",
+        "accepted",
+        "archived"
+      ],
+      "default": "draft"
+    },
+    "accepted_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "When this version was accepted"
+    },
+    "generation_metadata": {
+      "type": "object",
+      "description": "Generation bookkeeping: upstream accepted-version ids (based_on), brand stage, seen name options. Never used for scoring or matching.",
+      "additionalProperties": true
+    }
+  },
+  "required": [
+    "user_id",
+    "selected_business_id",
+    "module_type"
+  ],
+  "rls": {
+    "read": {
+      "$or": [
+        {
+          "created_by_id": "{{user.id}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    },
+    "create": {
+      "created_by_id": "{{user.id}}"
+    },
+    "update": {
+      "$or": [
+        {
+          "created_by_id": "{{user.id}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    },
+    "delete": {
+      "$or": [
+        {
+          "created_by_id": "{{user.id}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    }
+  }
+}

@@ -27,6 +27,7 @@ import AdminMatches from '@/pages/admin/AdminMatches';
 import MatchTester from '@/pages/admin/MatchTester';
 import DnaTester from '@/pages/admin/DnaTester';
 import Avatars from '@/pages/admin/Avatars';
+import BuilderTester from '@/pages/admin/BuilderTester';
 import HustleDNA from '@/pages/HustleDNA';
 import { Navigate } from 'react-router-dom';
 
@@ -82,6 +83,7 @@ const AuthenticatedApp = () => {
             <Route path="/admin/match-tester" element={<MatchTester />} />
             <Route path="/admin/dna-tester" element={<DnaTester />} />
             <Route path="/admin/avatars" element={<Avatars />} />
+            <Route path="/admin/builder-tester" element={<BuilderTester />} />
           </Route>
         </Route>
       </Route>

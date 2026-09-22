@@ -9,13 +9,13 @@ const STEPS = [
   { key: 'dna', label: 'DNA', future: false },
   { key: 'match', label: 'MATCH', future: false },
   { key: 'select', label: 'SELECT', future: false },
-  { key: 'build', label: 'BUILD', future: true },
+  { key: 'build', label: 'BUILD', future: false },
   { key: 'launch', label: 'LAUNCH', future: true },
   { key: 'grow', label: 'GROW', future: true },
 ];
 
-export default function JourneyProgress({ discover, dna, match, selected }) {
-  const done = { discover, dna, match, select: selected };
+export default function JourneyProgress({ discover, dna, match, selected, buildDone }) {
+  const done = { discover, dna, match, select: selected, build: !!buildDone };
   return (
     <div className="rounded-2xl border border-white/10 bg-white/[0.02] p-5">
       <div className="text-xs font-semibold tracking-[0.25em] text-muted-foreground">YOUR JOURNEY</div>
@@ -45,8 +45,8 @@ export default function JourneyProgress({ discover, dna, match, selected }) {
         })}
       </div>
       <p className="mt-3 text-[11px] leading-relaxed text-muted-foreground">
-        BUILD, LAUNCH and GROW unlock in a future release — completing the quiz doesn't mean you've launched a
-        business.
+        BUILD unlocks once you select a business. LAUNCH and GROW arrive in a future release — completing the quiz
+        doesn't mean you've launched a business.
       </p>
     </div>
   );

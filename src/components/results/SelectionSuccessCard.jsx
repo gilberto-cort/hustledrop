@@ -20,10 +20,14 @@ export default function SelectionSuccessCard({ businessName }) {
         >
           VIEW MY DASHBOARD
         </Button>
-        <div className="flex items-center justify-center gap-2 rounded-full border border-dashed border-white/25 px-4 py-2.5 text-xs font-semibold tracking-wider text-muted-foreground">
+        <Button
+          onClick={() => navigate('/build')}
+          variant="outline"
+          className="w-full rounded-full border-dashed py-2.5 text-xs font-semibold tracking-wider"
+        >
           <Lock className="h-3.5 w-3.5" />
-          BUILD MY BUSINESS — COMING SOON
-        </div>
+          BUILD MY BUSINESS
+        </Button>
       </div>
     </section>
   );
