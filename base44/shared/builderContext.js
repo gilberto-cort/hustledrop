@@ -23,6 +23,7 @@ export function assembleContext({ profile, model, brandName, fit, dna, positives
     business_description: model.description,
     income_model: model.income_model,
     typical_offer_type: model.typical_offer_type,
+    compliance_flags: Array.isArray(model.compliance_flags) && model.compliance_flags.length ? model.compliance_flags : undefined,
     personal_fit: fit,
     startup_budget: profile.startup_budget,
     hours_available_weekly: profile.weekly_hours,

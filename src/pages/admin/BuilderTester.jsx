@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { base44 } from '@/api/base44Client';
-import { BUILDER_MODULES } from '@/lib/builderService';
+import { BUILD_MODULES } from '@/lib/builderService';
 
 // Admin Business Builder test mode: run any module against a preset scenario
 // context (or your own accepted choices JSON), inspect exactly what was sent
@@ -163,7 +163,7 @@ export default function BuilderTester() {
             onChange={(e) => setModuleType(e.target.value)}
             className="mt-1.5 w-full rounded-lg border border-input bg-transparent px-3 py-2 text-sm text-foreground"
           >
-            {BUILDER_MODULES.map((m) => (
+            {[...BUILD_MODULES, { key: 'launch', num: '07', label: 'LAUNCH (legacy plan)' }].map((m) => (
               <option key={m.key} value={m.key} className="bg-card">
                 {m.num} {m.label}
               </option>

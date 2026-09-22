@@ -2,9 +2,9 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { trackEvent } from '@/lib/analytics';
 import EmptyState from '@/components/EmptyState';
-import { Briefcase, ArrowRight, RotateCcw } from 'lucide-react';
+import { Briefcase, ArrowRight, RotateCcw, Check } from 'lucide-react';
 import {
-  BUILDER_MODULES, loadBuilderState, generateModule, acceptAsset, saveEditedContent,
+  BUILD_MODULES, loadBuilderState, generateModule, acceptAsset, saveEditedContent,
 } from '@/lib/builderService';
 import BuilderHeader from '@/components/builder/BuilderHeader';
 import ModuleNav from '@/components/builder/ModuleNav';
@@ -18,12 +18,11 @@ import PricingModule from '@/components/builder/PricingModule';
 import BrandModule from '@/components/builder/BrandModule';
 import SalesModule from '@/components/builder/SalesModule';
 import MarketingModule from '@/components/builder/MarketingModule';
-import LaunchModule from '@/components/builder/LaunchModule';
 
-// BUSINESS BUILDER V1 — free during development (payment gate installs later
-// at the single server-side entitlement hook). Seven modules generated one
-// AI request at a time; deterministic software owns all user data, progress
-// and saved choices.
+// BUSINESS BUILDER — the six modules that create and approve the business
+// (Customer → Marketing). When all six are accepted, the business is BUILT
+// and the user advances to LAUNCH MODE. Free during development; the payment
+// gate installs later at the single server-side entitlement hook.
 const MODULE_DISPLAY = {
   customer: CustomerModule,
   offer: OfferModule,
@@ -31,7 +30,6 @@ const MODULE_DISPLAY = {
   brand: BrandModule,
   sales: SalesModule,
   marketing: MarketingModule,
-  launch: LaunchModule,
 };
 
 export default function Build() {
@@ -56,10 +54,10 @@ export default function Build() {
           return;
         }
         setState(s);
-        const firstIncomplete = BUILDER_MODULES.find(
+        const firstIncomplete = BUILD_MODULES.find(
           (m) => !(s.assets || []).some((a) => a.module_type === m.key && a.status === 'accepted')
         );
-        setActiveKey((firstIncomplete || BUILDER_MODULES[BUILDER_MODULES.length - 1]).key);
+        setActiveKey((firstIncomplete || BUILD_MODULES[BUILD_MODULES.length - 1]).key);
         setPhase('ready');
       } catch (e) {
         if (!cancelled) setPhase('error');
@@ -74,7 +72,7 @@ export default function Build() {
 
   const byModule = useMemo(() => {
     const map = {};
-    for (const m of BUILDER_MODULES) map[m.key] = { draft: null, accepted: null };
+    for (const m of BUILD_MODULES) map[m.key] = { draft: null, accepted: null };
     for (const a of assets) {
       const slot = map[a.module_type];
       if (!slot) continue;
@@ -87,10 +85,11 @@ export default function Build() {
     return map;
   }, [assets]);
 
-  const acceptedCount = BUILDER_MODULES.filter((m) => byModule[m.key].accepted).length;
-  const percent = Math.round((acceptedCount / BUILDER_MODULES.length) * 100);
+  const acceptedCount = BUILD_MODULES.filter((m) => byModule[m.key].accepted).length;
+  const percent = Math.round((acceptedCount / BUILD_MODULES.length) * 100);
+  const allAccepted = acceptedCount === BUILD_MODULES.length;
 
-  const isUnlocked = (idx) => BUILDER_MODULES.slice(0, idx).every((m) => byModule[m.key].accepted);
+  const isUnlocked = (idx) => BUILD_MODULES.slice(0, idx).every((m) => byModule[m.key].accepted);
 
   // REVIEW RECOMMENDED: an upstream accepted version changed after this
   // module was generated. We never auto-regenerate — the user decides.
@@ -135,9 +134,6 @@ export default function Build() {
         }),
       }));
       trackEvent('module_accepted', { module_type: asset.module_type });
-      if (BUILDER_MODULES.every((m) => m.key === asset.module_type || byModule[m.key].accepted)) {
-        trackEvent('builder_completed');
-      }
     } catch (e) {
       setGenError('Could not save your choice — please try again.');
     }
@@ -163,7 +159,7 @@ export default function Build() {
     }
   };
 
-  // Brand stage 2: the user picked a name from the accepted/generated options.
+  // Brand stage 2: the user picked a name from the generated options.
   const handlePickName = async (name) => {
     if (generating || brandPicking) return;
     setBrandPicking(true);
@@ -243,13 +239,13 @@ export default function Build() {
     );
   }
 
-  const idx = BUILDER_MODULES.findIndex((m) => m.key === activeKey);
-  const def = BUILDER_MODULES[idx];
+  const idx = BUILD_MODULES.findIndex((m) => m.key === activeKey);
+  const def = BUILD_MODULES[idx];
   const slot = byModule[activeKey];
   const display = slot.draft || slot.accepted;
   const Display = MODULE_DISPLAY[activeKey];
-  const hasNext = idx < BUILDER_MODULES.length - 1;
-  const editorDef = editor ? BUILDER_MODULES.find((m) => m.key === editor.module_type) : null;
+  const hasNext = idx < BUILD_MODULES.length - 1;
+  const editorDef = editor ? BUILD_MODULES.find((m) => m.key === editor.module_type) : null;
 
   return (
     <div className="mx-auto w-full max-w-2xl space-y-5">
@@ -260,8 +256,35 @@ export default function Build() {
         percent={percent}
       />
 
+      {allAccepted ? (
+        <div className="rounded-2xl border-2 border-primary/40 bg-brand-gradient-soft p-6 text-center">
+          <div className="text-xs font-semibold tracking-[0.25em] text-primary">BUSINESS BUILT</div>
+          <h2 className="mt-2 text-2xl font-semibold tracking-tight text-foreground">
+            {state.model.name} is ready to test.
+          </h2>
+          <div className="mx-auto mt-4 grid max-w-xs grid-cols-2 gap-2 text-left sm:grid-cols-3">
+            {BUILD_MODULES.map((m) => (
+              <div key={m.key} className="flex items-center gap-1.5 text-xs text-foreground/90">
+                <Check className="h-3.5 w-3.5 shrink-0 text-primary" />
+                {m.label}
+              </div>
+            ))}
+          </div>
+          <Link
+            to="/launch"
+            className="mt-5 inline-flex items-center gap-2 rounded-full bg-brand-gradient px-6 py-3 text-sm font-semibold text-white transition hover:scale-[1.02]"
+          >
+            LAUNCH MY BUSINESS
+            <ArrowRight className="h-4 w-4" />
+          </Link>
+          <p className="mt-3 text-[11px] text-muted-foreground">
+            You can still revise any module below — Launch Mode uses your accepted versions.
+          </p>
+        </div>
+      ) : null}
+
       <ModuleNav
-        modules={BUILDER_MODULES.map((m, i) => ({
+        modules={BUILD_MODULES.map((m, i) => ({
           ...m,
           accepted: !!byModule[m.key].accepted,
           locked: !isUnlocked(i),
@@ -276,7 +299,7 @@ export default function Build() {
 
       {generating === activeKey ? (
         <GenerationOverlay
-          acceptedMap={BUILDER_MODULES.map((m) => !!byModule[m.key].accepted)}
+          acceptedMap={BUILD_MODULES.map((m) => !!byModule[m.key].accepted)}
           activeIndex={idx}
           label={def.label}
         />
@@ -317,13 +340,13 @@ export default function Build() {
       {slot.accepted && hasNext && (
         <button
           onClick={() => {
-            setActiveKey(BUILDER_MODULES[idx + 1].key);
+            setActiveKey(BUILD_MODULES[idx + 1].key);
             setGenError(null);
             window.scrollTo({ top: 0 });
           }}
           className="w-full rounded-full bg-brand-gradient py-3 text-sm font-semibold text-white transition hover:scale-[1.01]"
         >
-          NEXT: {BUILDER_MODULES[idx + 1].label}
+          NEXT: {BUILD_MODULES[idx + 1].label}
         </button>
       )}
 

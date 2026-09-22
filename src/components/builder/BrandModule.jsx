@@ -41,7 +41,21 @@ export default function BrandModule({ content, onPickName, onTryNames, picking }
     );
   }
 
-  // Identity stage: full kit for the chosen name
+  // Identity stage: full brand kit for the chosen name (new and legacy field
+  // names are both supported, so existing accepted brands keep rendering)
+  const identityFields = [
+    ['tagline', 'TAGLINE'],
+    ['one_sentence_positioning', 'ONE-SENTENCE POSITIONING'],
+    ['short_bio', 'SHORT BIO'],
+    ['short_description', 'SHORT BUSINESS DESCRIPTION'],
+    ['customer_facing_description', 'CUSTOMER-FACING DESCRIPTION'],
+    ['brand_personality', 'BRAND PERSONALITY'],
+    ['visual_style', 'SUGGESTED VISUAL STYLE'],
+    ['visual_direction', 'VISUAL DIRECTION'],
+    ['color_direction', 'COLOR DIRECTION'],
+    ['logo_concept_description', 'LOGO CONCEPT DESCRIPTION'],
+  ].filter(([k]) => content[k]);
+
   return (
     <div>
       <div className="rounded-xl border-2 border-primary/40 bg-brand-gradient-soft p-4 text-center">
@@ -49,17 +63,14 @@ export default function BrandModule({ content, onPickName, onTryNames, picking }
       </div>
       <Card>
         <div className="space-y-3">
-          <Field label="TAGLINE">{content.tagline}</Field>
-          <Field label="SHORT BUSINESS DESCRIPTION">{content.short_description}</Field>
-          <Field label="BRAND PERSONALITY">{content.brand_personality}</Field>
-          <Field label="VISUAL DIRECTION">{content.visual_direction}</Field>
-          <Field label="COLOR DIRECTION">{content.color_direction}</Field>
-          <Field label="LOGO CONCEPT DESCRIPTION">{content.logo_concept_description}</Field>
+          {identityFields.map(([k, label]) => (
+            <Field key={k} label={label}>{content[k]}</Field>
+          ))}
         </div>
       </Card>
       <Note>
-        Logo concept described only — no logo is generated here. Verify business-name, domain and trademark
-        availability before committing.
+        Brand kit described only — no logo is generated here, and no domain, trademark or handle availability is
+        claimed. Verify business-name, domain and trademark availability before committing.
       </Note>
     </div>
   );

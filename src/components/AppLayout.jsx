@@ -51,8 +51,8 @@ export default function AppLayout() {
             )}
           </div>
         </div>
-        <nav className="mx-auto max-w-6xl overflow-x-auto px-4 sm:px-6 scrollbar-none">
-          <div className="flex h-12 items-center gap-1">
+        <nav className="mx-auto max-w-6xl px-4 sm:px-6">
+          <div className="flex flex-wrap items-center justify-center gap-x-1 gap-y-1.5 py-2 sm:h-12 sm:flex-nowrap sm:justify-start sm:py-0">
             {NAV.map((item) => {
               const active = location.pathname === item.path;
               return (

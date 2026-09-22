@@ -1,0 +1,70 @@
+{
+  "name": "CustomerWin",
+  "type": "object",
+  "properties": {
+    "launch_quest_id": {
+      "type": "string",
+      "description": "LaunchQuest this win belongs to"
+    },
+    "offer_name": {
+      "type": "string",
+      "description": "Which offer was sold"
+    },
+    "sale_amount": {
+      "type": "number",
+      "description": "Optional sale amount (user-reported)"
+    },
+    "acquisition_channel": {
+      "type": "string",
+      "description": "Optional source of the customer (e.g. facebook_group, referral, in_person)"
+    },
+    "notes": {
+      "type": "string",
+      "description": "Optional notes \u2014 what helped close the sale, customer nickname, etc."
+    }
+  },
+  "required": [
+    "launch_quest_id"
+  ],
+  "rls": {
+    "read": {
+      "$or": [
+        {
+          "created_by_id": "{{user.id}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    },
+    "create": {
+      "created_by_id": "{{user.id}}"
+    },
+    "update": {
+      "$or": [
+        {
+          "created_by_id": "{{user.id}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    },
+    "delete": {
+      "$or": [
+        {
+          "created_by_id": "{{user.id}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    }
+  }
+}

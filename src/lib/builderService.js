@@ -5,15 +5,33 @@ import { base44 } from '@/api/base44Client';
 // time. A future payment gate plugs into builderGenerate — nothing here needs
 // to change.
 
-export const BUILDER_MODULES = [
+// The six modules that constitute a BUILT business. Launch is no longer a
+// Build module — the accepted launch plan feeds Launch Mode instead.
+export const BUILD_MODULES = [
   { key: 'customer', num: '01', label: 'CUSTOMER', desc: 'Realistic customer segments to test — hypotheses, not verified demand.' },
   { key: 'offer', num: '02', label: 'OFFER', desc: 'Three offer concepts built around your accepted customer.' },
   { key: 'pricing', num: '03', label: 'PRICING', desc: 'A starting pricing hypothesis to test with real customers.' },
-  { key: 'brand', num: '04', label: 'BRAND', desc: 'Name options first — then your full identity kit.' },
+  { key: 'brand', num: '04', label: 'BRAND', desc: 'Name options first — then your full brand kit.' },
   { key: 'sales', num: '05', label: 'SALES', desc: 'A first-customer sales kit adapted to your sales comfort.' },
   { key: 'marketing', num: '06', label: 'MARKETING', desc: 'A small launch marketing kit for the right channels.' },
-  { key: 'launch', num: '07', label: 'LAUNCH', desc: 'A 7-day validation sprint that fits your hours and budget.' },
 ];
+
+// All module types the server can still generate (kept for admin testing and
+// legacy launch-plan assets).
+export const MODULE_KEYS = ['customer', 'offer', 'pricing', 'brand', 'sales', 'marketing', 'launch'];
+
+// Latest accepted content per module type (works for legacy and new schemas).
+export function acceptedByModule(assets) {
+  const map = {};
+  for (const a of assets || []) {
+    if (a.status !== 'accepted') continue;
+    const cur = map[a.module_type];
+    if (!cur || Number(a.version || 0) > Number(cur.version || 0)) map[a.module_type] = a;
+  }
+  const out = {};
+  for (const [k, v] of Object.entries(map)) out[k] = v.content;
+  return out;
+}
 
 export async function loadBuilderState() {
   const selections = await base44.entities.SelectedBusiness.list('-created_date', 10);

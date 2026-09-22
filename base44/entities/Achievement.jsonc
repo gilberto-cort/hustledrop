@@ -1,0 +1,68 @@
+{
+  "name": "Achievement",
+  "type": "object",
+  "properties": {
+    "user_id": {
+      "type": "string",
+      "description": "Owner user id"
+    },
+    "achievement_type": {
+      "type": "string",
+      "description": "Achievement key (first_move, out_of_the_lab, no_fear, conversation_starter, the_follow_up, market_signal, first_lead, first_customer)"
+    },
+    "related_business_id": {
+      "type": "string",
+      "description": "SelectedBusiness the achievement was earned in"
+    },
+    "earned_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "When the achievement was earned"
+    }
+  },
+  "required": [
+    "user_id",
+    "achievement_type"
+  ],
+  "rls": {
+    "read": {
+      "$or": [
+        {
+          "created_by_id": "{{user.id}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    },
+    "create": {
+      "created_by_id": "{{user.id}}"
+    },
+    "update": {
+      "$or": [
+        {
+          "created_by_id": "{{user.id}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    },
+    "delete": {
+      "$or": [
+        {
+          "created_by_id": "{{user.id}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    }
+  }
+}

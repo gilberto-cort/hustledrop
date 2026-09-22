@@ -4,26 +4,30 @@ import DnaDashboardCard from '@/components/dna/DnaDashboardCard';
 import MatchStatusCard from '@/components/dashboard/MatchStatusCard';
 import BuilderProgressCard from '@/components/dashboard/BuilderProgressCard';
 import JourneyProgress from '@/components/dashboard/JourneyProgress';
+import { BUILD_MODULES } from '@/lib/builderService';
 
 export default function Dashboard() {
   const [selection, setSelection] = useState(undefined); // undefined = loading, null = none
   const [flags, setFlags] = useState(null);
   const [builder, setBuilder] = useState(null);
+  const [firstCustomer, setFirstCustomer] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
     (async () => {
       try {
-        const [profiles, dnaProfiles, matchResults, selections] = await Promise.all([
+        const [profiles, dnaProfiles, matchResults, selections, wins] = await Promise.all([
           base44.entities.HustleProfile.list('-created_date', 1).catch(() => []),
           base44.entities.HustleDNAProfile.list('-created_date', 1).catch(() => []),
           base44.entities.MatchResult.list('-created_date', 1).catch(() => []),
           base44.entities.SelectedBusiness.list('-created_date', 1).catch(() => []),
+          base44.entities.CustomerWin.list('-created_date', 1).catch(() => []),
         ]);
         if (cancelled) return;
 
         const profile = profiles?.[0];
         const selected = selections?.[0];
+        setFirstCustomer((wins || []).length > 0);
 
         let sel = null;
         if (selected) {
@@ -54,7 +58,7 @@ export default function Dashboard() {
             const modulesDone = new Set((acc || []).map((a) => a.module_type)).size;
             if (!cancelled) {
               setBuilder({
-                percent: Math.round((modulesDone / 7) * 100),
+                percent: Math.round((modulesDone / BUILD_MODULES.length) * 100),
                 started: (acc || []).length > 0,
               });
             }
@@ -103,6 +107,8 @@ export default function Dashboard() {
           match={flags.match}
           selected={!!selection}
           buildDone={builder ? builder.percent === 100 : false}
+          launchDone={firstCustomer}
+          growUnlocked={firstCustomer}
         />
       )}
     </div>

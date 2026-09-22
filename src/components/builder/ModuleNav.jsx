@@ -4,7 +4,7 @@ import { Check, Lock } from 'lucide-react';
 // Module progress navigation — one active module at a time (mobile-friendly).
 export default function ModuleNav({ modules, activeKey, onSelect }) {
   return (
-    <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-none">
+    <div className="flex flex-wrap gap-2 pb-1">
       {modules.map((m) => {
         const active = m.key === activeKey;
         const disabled = m.locked;

@@ -1,0 +1,97 @@
+{
+  "name": "LaunchQuest",
+  "type": "object",
+  "properties": {
+    "user_id": {
+      "type": "string",
+      "description": "Owner user id"
+    },
+    "selected_business_id": {
+      "type": "string",
+      "description": "SelectedBusiness being launched"
+    },
+    "status": {
+      "type": "string",
+      "description": "Quest status",
+      "enum": [
+        "active",
+        "completed"
+      ],
+      "default": "active"
+    },
+    "current_stage": {
+      "type": "string",
+      "description": "Active mission type (loadout, prospect_hunt, first_contact, conversations, follow_up, first_lead, first_customer)"
+    },
+    "xp": {
+      "type": "number",
+      "default": 0,
+      "description": "Launch XP \u2014 represents real business actions only, has no monetary value"
+    },
+    "level": {
+      "type": "number",
+      "default": 3,
+      "description": "Cosmetic launch level (3 = Launcher, 4 = Entrepreneur after first customer)"
+    },
+    "streak": {
+      "type": "number",
+      "default": 0,
+      "description": "Consecutive days with at least one meaningful launch action"
+    },
+    "last_action_date": {
+      "type": "string",
+      "format": "date",
+      "description": "Date (YYYY-MM-DD) of the last meaningful launch action"
+    },
+    "completed_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "When the first customer was recorded (quest complete)"
+    }
+  },
+  "required": [
+    "user_id",
+    "selected_business_id"
+  ],
+  "rls": {
+    "read": {
+      "$or": [
+        {
+          "created_by_id": "{{user.id}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    },
+    "create": {
+      "created_by_id": "{{user.id}}"
+    },
+    "update": {
+      "$or": [
+        {
+          "created_by_id": "{{user.id}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    },
+    "delete": {
+      "$or": [
+        {
+          "created_by_id": "{{user.id}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    }
+  }
+}

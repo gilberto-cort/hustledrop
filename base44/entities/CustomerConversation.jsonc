@@ -1,0 +1,75 @@
+{
+  "name": "CustomerConversation",
+  "type": "object",
+  "properties": {
+    "prospect_id": {
+      "type": "string",
+      "description": "Prospect this conversation record belongs to"
+    },
+    "status": {
+      "type": "string",
+      "description": "Conversation record status",
+      "enum": [
+        "logged",
+        "declined"
+      ],
+      "default": "logged"
+    },
+    "outcome": {
+      "type": "string",
+      "description": "What happened (e.g. interested, declined, asked for price)"
+    },
+    "objection_type": {
+      "type": "string",
+      "description": "Recorded market feedback when declined: too_expensive, not_interested, bad_timing, didnt_understand, already_has_solution, other, unknown"
+    },
+    "notes": {
+      "type": "string",
+      "description": "User notes about the conversation"
+    }
+  },
+  "required": [
+    "prospect_id"
+  ],
+  "rls": {
+    "read": {
+      "$or": [
+        {
+          "created_by_id": "{{user.id}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    },
+    "create": {
+      "created_by_id": "{{user.id}}"
+    },
+    "update": {
+      "$or": [
+        {
+          "created_by_id": "{{user.id}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    },
+    "delete": {
+      "$or": [
+        {
+          "created_by_id": "{{user.id}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    }
+  }
+}

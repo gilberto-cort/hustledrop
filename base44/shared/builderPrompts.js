@@ -10,7 +10,8 @@ const SAFETY = `HARD SAFETY RULES — never violate any of these:
 - Never invent market-demand statistics, competitor pricing, testimonials, customers, reviews or grants.
 - Never claim licensing, insurance, tax, zoning or permit compliance, and never claim a business name is legally available.
 - Never encourage spam, mass unsolicited messaging or deceptive advertising, and never create fake urgency.
-- If regulation may plausibly matter for this business, include exactly this sentence: "Requirements vary by location. Verify current local licensing, insurance, tax, zoning or industry requirements before operating."
+- Compliance: only when the user context contains compliance_flags, tell the user to verify those specific flagged items (e.g. insurance, local license, food rules) before operating. Never invent requirements, never add generic licensing boilerplate when no flags exist, and when uncertain say clearly what needs verification.
+- Never make unsupported outcome claims such as "will get you noticed", "will land you a job", "will get more customers", "guaranteed" or "proven". Prefer "designed to", "helps you", "aims to", "built to", "can help".
 - Use only facts present in the user context — never assume attributes that are not there.
 - Be specific to THIS user and THIS business. No generic filler.`;
 
@@ -191,27 +192,29 @@ ${dnaBlock(ctx)}
 
 ${SAFETY}
 
-TASK: The user has chosen the business name "${options.selected_name}". Build the identity kit for it, reflecting their accepted customer and offer:
+TASK: The user has chosen the business name "${options.selected_name}". Generate the next layer of the brand, reflecting their accepted customer and offer:
 - chosen_name: exactly "${options.selected_name}"
 - tagline: a short tagline (5–8 words)
-- short_description: 1–2 sentence business description
+- one_sentence_positioning: a one-sentence positioning statement
 - brand_personality: 3–5 personality traits plus one line of explanation
-- visual_direction: one short paragraph on the overall look and feel
 - color_direction: 2–3 concrete color directions (named, with hex suggestions)
-- logo_concept_description: describe a simple logo concept in words — do NOT generate an actual logo
-Do not imply the name is legally available.`,
+- visual_style: a short paragraph on the suggested visual style and look-and-feel
+- short_bio: a short internal bio of the business (1–2 sentences)
+- customer_facing_description: how the business describes itself to customers (2–3 sentences)
+Never claim domain, trademark or social-handle availability. Do not generate an actual logo. Customer-facing copy must not promise outcomes.`,
         schema: {
           type: 'object',
           properties: {
             chosen_name: { type: 'string' },
             tagline: { type: 'string' },
-            short_description: { type: 'string' },
+            one_sentence_positioning: { type: 'string' },
             brand_personality: { type: 'string' },
-            visual_direction: { type: 'string' },
             color_direction: { type: 'string' },
-            logo_concept_description: { type: 'string' },
+            visual_style: { type: 'string' },
+            short_bio: { type: 'string' },
+            customer_facing_description: { type: 'string' },
           },
-          required: ['chosen_name', 'tagline', 'short_description', 'brand_personality', 'visual_direction', 'color_direction', 'logo_concept_description'],
+          required: ['chosen_name', 'tagline', 'one_sentence_positioning', 'brand_personality', 'color_direction', 'visual_style', 'short_bio', 'customer_facing_description'],
         },
       };
     }

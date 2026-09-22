@@ -163,7 +163,7 @@
     },
     "verification_warning": {
       "type": "string",
-      "description": "General verification warning shown with results when applicable"
+      "description": "Specific verification warning shown with results when applicable"
     },
     "first_validation_action": {
       "type": "string",
@@ -178,19 +178,36 @@
       "default": false,
       "description": "Admin-approved low-cost validation pathway (exempts from the budget hard filter)"
     },
+    "compliance_flags": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "enum": [
+          "insurance_review",
+          "local_license_review",
+          "food_rules_review",
+          "childcare_rules_review",
+          "environmental_rules_review",
+          "professional_credential_review",
+          "zoning_review",
+          "tax_registration_review"
+        ]
+      },
+      "description": "Admin-approved compliance review flags. Empty = no compliance warning is shown anywhere (no generic boilerplate)."
+    },
     "compatible_dna_primary": {
       "type": "array",
       "items": {
         "type": "string"
       },
-      "description": "Primary compatible HustleDNA types (used from Build 04)"
+      "description": "Primary compatible HustleDNA types"
     },
     "compatible_dna_secondary": {
       "type": "array",
       "items": {
         "type": "string"
       },
-      "description": "Secondary compatible HustleDNA types (used from Build 04)"
+      "description": "Secondary compatible HustleDNA types"
     },
     "active": {
       "type": "boolean",

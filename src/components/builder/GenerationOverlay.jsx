@@ -7,7 +7,6 @@ const LINES = [
   'Preparing your brand',
   'Creating your sales plan',
   'Building your marketing',
-  'Preparing launch',
 ];
 
 // Real-time generation state. Modules are only marked done when they are
