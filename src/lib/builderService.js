@@ -98,6 +98,27 @@ export async function saveEditedContent(asset, moduleAssets, content) {
   return { asset: clone, created: true };
 }
 
+// Manual brand fallback — when AI naming is unavailable the user enters their
+// own business name. Creates a plain DRAFT the user explicitly accepts; it is
+// never presented as AI-generated and previous versions are never touched.
+export async function createManualBrandAsset(userId, selectedBusinessId, name) {
+  const existing = await base44.entities.GeneratedAsset.filter(
+    { selected_business_id: selectedBusinessId, module_type: 'brand' },
+    '-created_date',
+    200
+  );
+  const maxVersion = (existing || []).reduce((m, a) => Math.max(m, Number(a.version) || 0), 0);
+  return base44.entities.GeneratedAsset.create({
+    user_id: userId,
+    selected_business_id: selectedBusinessId,
+    module_type: 'brand',
+    version: maxVersion + 1,
+    content: { chosen_name: name, manual: true },
+    status: 'draft',
+    generation_metadata: { manual: true },
+  });
+}
+
 // Ask HustleDrop — advisory only, never modifies content.
 export async function askHustleDrop(question) {
   const res = await base44.functions.invoke('builderAsk', { question });

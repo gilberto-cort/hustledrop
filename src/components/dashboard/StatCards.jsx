@@ -5,11 +5,11 @@ import React from 'react';
 // broken placeholder. One row that scrolls on the narrowest screens.
 export default function StatCards({ level, levelLabel, xp, questStage, buildPercent, customers, achievements }) {
   const cards = [
-    { label: 'LEVEL + XP', value: `LV.${level || 1} ${levelLabel || 'EXPLORER'}`, sub: `${xp || 0} XP` },
+    { label: 'CHARACTER LEVEL', value: `LV.${level || 1} ${levelLabel || 'EXPLORER'}`, sub: `${xp || 0} JOURNEY XP` },
     { label: 'CURRENT QUEST', value: questStage ? questStage.replace(/_/g, ' ').toUpperCase() : 'NOT STARTED' },
     { label: 'BUILD PROGRESS', value: `${buildPercent || 0}%` },
     { label: 'CUSTOMERS', value: String(customers || 0) },
-    { label: 'ACHIEVEMENTS', value: String(achievements || 0) },
+    { label: 'JOURNEY ACHIEVEMENTS', value: String(achievements || 0) },
   ];
   return (
     <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-5">

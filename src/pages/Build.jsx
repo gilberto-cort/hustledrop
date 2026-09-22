@@ -5,7 +5,7 @@ import { trackEvent } from '@/lib/analytics';
 import EmptyState from '@/components/EmptyState';
 import { Briefcase, ArrowRight, RotateCcw, Check } from 'lucide-react';
 import {
-  BUILD_MODULES, loadBuilderState, generateModule, acceptAsset, saveEditedContent,
+  BUILD_MODULES, loadBuilderState, generateModule, acceptAsset, saveEditedContent, createManualBrandAsset,
 } from '@/lib/builderService';
 import { hasEntitlement, startCheckout, verifyCheckoutWithRetry } from '@/lib/paymentService';
 import { useAuth } from '@/lib/AuthContext';
@@ -215,25 +215,45 @@ export default function Build() {
     return Object.entries(basedOn).some(([dep, id]) => byModule[dep]?.accepted?.id !== id);
   };
 
+  // A failed call persists nothing server-side, so one silent retry can never
+  // duplicate or overwrite content — bounded to a single attempt.
+  const safeGenerate = async (moduleKey, options) => {
+    try {
+      return await generateModule(moduleKey, options);
+    } catch (e) {
+      return { status: 'client_error' };
+    }
+  };
+
+  const runGeneration = async (moduleKey, options) => {
+    let res = await safeGenerate(moduleKey, options);
+    if (res && (res.status === 'generation_error' || res.status === 'client_error')) {
+      await new Promise((r) => setTimeout(r, 800));
+      res = await safeGenerate(moduleKey, options);
+    }
+    return res;
+  };
+
   const handleGenerate = async (moduleKey, options = {}, isRegen = false) => {
     if (generating || brandPicking) return;
     setGenerating(moduleKey);
     setGenError(null);
     if (assets.length === 0 && !isRegen) trackEvent('builder_started');
     try {
-      const res = await generateModule(moduleKey, options);
-      if (res.status === 'ok' && res.asset) {
+      const res = await runGeneration(moduleKey, options);
+      if (res && res.status === 'ok' && res.asset) {
         setState((prev) => ({ ...prev, assets: [res.asset, ...(prev ? prev.assets || [] : [])] }));
         trackEvent(isRegen ? 'module_regenerated' : 'module_generated', { module_type: moduleKey });
-      } else if (res.status === 'payment_required') {
+      } else if (res && res.status === 'payment_required') {
         setPhase('paywall');
-      } else if (res.status === 'missing_upstream') {
+      } else if (res && res.status === 'missing_upstream') {
         setGenError('Lock in the previous mission first — each mission builds on the one before it.');
       } else {
-        setGenError(res.error || 'Generation failed — please try again.');
+        // Never claims success — nothing was saved on failure.
+        setGenError(
+          `AI drafting failed twice${res && res.error ? ` (${res.error})` : ''} — nothing was saved. Try again in a moment.`
+        );
       }
-    } catch (e) {
-      setGenError('Generation failed — please try again.');
     } finally {
       setGenerating(null);
     }
@@ -302,15 +322,33 @@ export default function Build() {
     setBrandPicking(true);
     setGenError(null);
     try {
-      const res = await generateModule('brand', { stage: 'identity', selected_name: name });
-      if (res.status === 'ok' && res.asset) {
+      const res = await runGeneration('brand', { stage: 'identity', selected_name: name });
+      if (res && res.status === 'ok' && res.asset) {
         setState((prev) => ({ ...prev, assets: [res.asset, ...(prev.assets || [])] }));
         trackEvent('module_generated', { module_type: 'brand' });
       } else {
-        setGenError(res.error || 'Generation failed — please try again.');
+        setGenError(
+          `Forging your identity failed${res && res.error ? ` (${res.error})` : ''} — nothing was saved. Try again, or save your name only.`
+        );
       }
+    } finally {
+      setBrandPicking(false);
+    }
+  };
+
+  // MANUAL FALLBACK — when AI drafting is unavailable the user can save their
+  // own business name as a plain draft they explicitly accept. It is never
+  // marked as AI-generated and never claims a generated brand kit.
+  const handleManualBrandName = async (name) => {
+    if (generating || brandPicking || !state || !state.selection) return;
+    setBrandPicking(true);
+    setGenError(null);
+    try {
+      const asset = await createManualBrandAsset(user && user.id, state.selection.id, name);
+      setState((prev) => ({ ...prev, assets: [asset, ...(prev.assets || [])] }));
+      trackEvent('brand_name_entered_manually');
     } catch (e) {
-      setGenError('Generation failed — please try again.');
+      setGenError('Could not save your name — please try again.');
     } finally {
       setBrandPicking(false);
     }
@@ -409,7 +447,7 @@ export default function Build() {
   const editorDef = editor ? BUILD_MODULES.find((m) => m.key === editor.module_type) : null;
 
   return (
-    <div className="mx-auto w-full max-w-2xl space-y-5">
+    <div className="mx-auto w-full max-w-2xl space-y-5 pb-[calc(5.5rem+env(safe-area-inset-bottom))]">
       <BuilderHUD
         businessName={state.model.name}
         fit={state.fit}
@@ -493,6 +531,7 @@ export default function Build() {
             onGenerate={(opts) => handleGenerate(activeKey, opts || {})}
             onConfirm={(patch) => confirmMission(activeKey, patch)}
             onPickName={handlePickName}
+            onManualName={handleManualBrandName}
           />
         </MissionShell>
       )}

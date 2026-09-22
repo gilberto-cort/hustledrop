@@ -22,9 +22,11 @@ function hexSwatches(text) {
   return (String(text || '').match(/#[0-9a-fA-F]{6}/g) || []).slice(0, 5);
 }
 
-export default function BrandMission({ content, accepted, busy, generating, brandPicking, onGenerate, onConfirm, onPickName }) {
+export default function BrandMission({ content, accepted, busy, generating, brandPicking, onGenerate, onConfirm, onPickName, onManualName }) {
   const [picked, setPicked] = useState(null);
   const [drawer, setDrawer] = useState(false);
+  const [manual, setManual] = useState(false);
+  const [manualName, setManualName] = useState('');
 
   // No content yet — generate name options first.
   if (!content) {
@@ -40,6 +42,37 @@ export default function BrandMission({ content, accepted, busy, generating, bran
         >
           {generating ? 'NAMING…' : MISSION_META.brand.generate}
         </button>
+        <div className="mt-2.5 border-t border-white/10 pt-3">
+          <button
+            onClick={() => setManual((m) => !m)}
+            className="text-[10px] font-bold tracking-widest text-muted-foreground transition hover:text-foreground"
+          >
+            {manual ? 'HIDE MANUAL ENTRY' : 'AI UNAVAILABLE? TYPE MY OWN NAME'}
+          </button>
+          {manual && (
+            <div className="mt-2.5 flex gap-2">
+              <input
+                type="text"
+                value={manualName}
+                onChange={(e) => setManualName(e.target.value)}
+                placeholder="Your business name"
+                maxLength={60}
+                aria-label="Your business name"
+                className="min-w-0 flex-1 rounded-lg border border-white/10 bg-white/[0.03] px-3 py-2 text-xs text-foreground placeholder:text-muted-foreground/60 outline-none focus:border-primary/40"
+              />
+              <button
+                onClick={() => manualName.trim() && onManualName(manualName.trim())}
+                disabled={!manualName.trim() || brandPicking}
+                className="shrink-0 rounded-lg border border-primary/40 bg-primary/10 px-4 py-2 text-[10px] font-bold tracking-widest text-primary transition hover:bg-primary/20 disabled:opacity-40"
+              >
+                {brandPicking ? 'SAVING…' : 'SAVE NAME'}
+              </button>
+            </div>
+          )}
+          <p className="mt-1.5 text-[10px] leading-relaxed text-muted-foreground">
+            Saving your own name skips AI naming — you confirm it yourself on the next screen.
+          </p>
+        </div>
       </div>
     );
   }
@@ -88,6 +121,15 @@ export default function BrandMission({ content, accepted, busy, generating, bran
             Confirming the name forges your full identity kit next. Verify domain and trademark availability before
             committing.
           </p>
+          {picked !== null && (
+            <button
+              onClick={() => onManualName(content.name_options[picked].name)}
+              disabled={brandPicking}
+              className="w-full text-[10px] font-bold tracking-widest text-muted-foreground transition hover:text-foreground disabled:opacity-40"
+            >
+              IDENTITY KIT WON’T FORGE? SAVE MY PICKED NAME ONLY
+            </button>
+          )}
         </div>
       </div>
     );
@@ -151,12 +193,18 @@ export default function BrandMission({ content, accepted, busy, generating, bran
         </div>
       )}
 
-      <button
-        onClick={() => setDrawer(true)}
-        className="flex w-full items-center justify-center gap-1.5 rounded-full border border-white/15 py-2.5 text-[10px] font-bold tracking-widest text-muted-foreground transition hover:text-foreground"
-      >
-        VIEW FULL BRAND KIT
-      </button>
+      {content.manual ? (
+        <p className="rounded-lg border border-dashed border-white/15 p-2.5 text-center text-[10px] leading-relaxed text-muted-foreground">
+          You saved this name yourself — no AI brand kit was generated for it.
+        </p>
+      ) : (
+        <button
+          onClick={() => setDrawer(true)}
+          className="flex w-full items-center justify-center gap-1.5 rounded-full border border-white/15 py-2.5 text-[10px] font-bold tracking-widest text-muted-foreground transition hover:text-foreground"
+        >
+          VIEW FULL BRAND KIT
+        </button>
+      )}
       <p className="flex items-start gap-2 text-[10px] leading-relaxed text-muted-foreground">
         <Sparkles className="mt-0.5 h-3 w-3 shrink-0 text-primary" />
         Verify business-name, domain and trademark availability before committing.
