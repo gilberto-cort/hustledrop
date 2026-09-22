@@ -145,7 +145,7 @@ export default function BrandMission({ content, accepted, busy, generating, bran
           <Crown className="h-3 w-3" />
           {isAccepted ? 'YOUR BRAND' : 'CHOSEN NAME'}
         </div>
-        <div className="mt-1 text-2xl font-bold tracking-tight text-foreground">{content.chosen_name}</div>
+        <div className="mt-1 text-2xl font-bold tracking-tight text-foreground">{content.chosen_name || 'YOUR BUSINESS NAME'}</div>
         {content.tagline && <p className="mt-1 text-xs italic text-muted-foreground">“{content.tagline}”</p>}
       </div>
 
@@ -170,10 +170,10 @@ export default function BrandMission({ content, accepted, busy, generating, bran
       )}
 
       <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-2">
-        {IDENTITY_CARDS.filter(([k]) => content[k]).map(([k, label]) => (
-          <div key={k} className="rounded-xl border border-white/10 bg-white/[0.02] p-3.5">
-            <div className="font-mono text-[9px] font-bold tracking-widest text-muted-foreground">{label}</div>
-            <p className="mt-1 text-xs leading-relaxed text-foreground/90">{content[k]}</p>
+        {IDENTITY_CARDS.filter((card) => content[card.key]).map((card) => (
+          <div key={card.key} className="rounded-xl border border-white/10 bg-white/[0.02] p-3.5">
+            <div className="font-mono text-[9px] font-bold tracking-widest text-muted-foreground">{card.label}</div>
+            <p className="mt-1 text-xs leading-relaxed text-foreground/90">{content[card.key]}</p>
           </div>
         ))}
       </div>

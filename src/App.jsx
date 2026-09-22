@@ -20,6 +20,7 @@ import Register from '@/pages/Register';
 import ForgotPassword from '@/pages/ForgotPassword';
 import ResetPassword from '@/pages/ResetPassword';
 import ProtectedRoute from '@/components/ProtectedRoute';
+import RouteErrorBoundary from '@/components/RouteErrorBoundary';
 import UnauthenticatedRedirect from '@/components/UnauthenticatedRedirect';
 import AdminRoute from '@/components/AdminRoute';
 import AppLayout from '@/components/AppLayout';
@@ -70,7 +71,7 @@ const AuthenticatedApp = () => {
           <Route path="/results" element={<Results />} />
           <Route path="/hustledna" element={<HustleDNA />} />
           <Route path="/dashboard" element={<Dashboard />} />
-          <Route path="/build" element={<Build />} />
+          <Route path="/build" element={<RouteErrorBoundary><Build /></RouteErrorBoundary>} />
           <Route path="/launch" element={<Launch />} />
           <Route path="/grow" element={<Grow />} />
         </Route>
