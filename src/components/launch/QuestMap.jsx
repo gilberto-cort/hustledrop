@@ -56,7 +56,7 @@ export default function QuestMap({ stats, avatar, onOpenMission, onOpenGrow }) {
                 />
               )}
               {n.state === 'current' && n.key !== 'grow' && (
-                <div className="my-1.5 animate-[bounce_2s_ease-in-out_infinite]">
+                <div className="my-1.5 animate-[bounce_2s_ease-in-out_infinite] motion-reduce:animate-none">
                   <SpriteDisplay avatar={avatar} size="sm" />
                 </div>
               )}
@@ -94,7 +94,8 @@ export default function QuestMap({ stats, avatar, onOpenMission, onOpenGrow }) {
         })}
       </div>
       <p className="mt-5 text-center text-[11px] leading-relaxed text-muted-foreground">
-        Tap the glowing node to open its mission. Every mission is a real-world action — the game is the launch.
+        Your journey at a glance — the active quest lives in the card above. Every mission is a real-world action;
+        the game is the launch.
       </p>
     </div>
   );

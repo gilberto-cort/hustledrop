@@ -41,7 +41,7 @@ export default function ProspectRoster({ prospects, busy, onAdd, onAdvance }) {
 
   return (
     <div>
-      <div className="text-[10px] font-semibold tracking-wider text-muted-foreground">PROSPECT ROSTER</div>
+      <div className="text-[10px] font-semibold tracking-wider text-muted-foreground">MY CONTACTS</div>
       <div className="mt-2 flex flex-col gap-2 sm:flex-row">
         <input
           value={name}
@@ -103,7 +103,7 @@ export default function ProspectRoster({ prospects, busy, onAdd, onAdvance }) {
                         disabled={busy}
                         className="rounded-full bg-brand-gradient px-3 py-1.5 text-[10px] font-bold tracking-wider text-white disabled:opacity-40"
                       >
-                        RECORD CUSTOMER WIN
+                        I LANDED THIS CUSTOMER
                       </button>
                     )}
                     {DECLINABLE.includes(p.status) && (

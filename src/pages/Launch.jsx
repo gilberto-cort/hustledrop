@@ -1,36 +1,42 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { base44 } from '@/api/base44Client';
 import { trackEvent } from '@/lib/analytics';
 import EmptyState from '@/components/EmptyState';
-import { Briefcase, Rocket, ArrowRight, RotateCcw, Check } from 'lucide-react';
+import { Briefcase, Rocket, ArrowRight, RotateCcw, Trophy } from 'lucide-react';
 import { loadBuilderState, BUILD_MODULES, acceptedByModule } from '@/lib/builderService';
 import {
   loadLaunchData, startLaunchQuest, computeLaunchStats, completeLoadout,
-  addProspect, advanceProspect, buildLoadoutItems,
+  addProspect, advanceProspect, oneTapAction, quickAddContact, undoLastAction,
+  updateProspectDetails, buildLoadoutItems,
 } from '@/lib/launchService';
 import SpriteDisplay from '@/components/dna/SpriteDisplay';
 import LaunchHUD from '@/components/launch/LaunchHUD';
 import QuestMap from '@/components/launch/QuestMap';
-import MissionDialog from '@/components/launch/MissionDialog';
 import LoadoutPanel from '@/components/launch/LoadoutPanel';
+import ActiveMission from '@/components/launch/ActiveMission';
+import MissionVictory from '@/components/launch/MissionVictory';
 import LevelUpOverlay from '@/components/launch/LevelUpOverlay';
 import { AnimatePresence, motion } from 'framer-motion';
 
-// LAUNCH MODE — a lightweight retro-RPG business adventure. Every mechanic
-// maps to a real-world action; all progress persists (LaunchQuest, missions,
-// prospects, achievements, wins).
+// LAUNCH MODE 2.0 — the game IS the real-world launch journey. One active
+// quest is always front and center with a single one-tap action; the quest
+// map stays as the overview. All progress persists (LaunchQuest, missions,
+// prospects, achievements, wins) and is re-derived from records — no
+// fabricated sales, no double awards, purchases and Build data untouched.
 export default function Launch() {
   const [phase, setPhase] = useState('loading'); // loading | no-selection | not-built | entry | ready | error
   const [reloadKey, setReloadKey] = useState(0);
   const [build, setBuild] = useState(null);
   const [game, setGame] = useState(null);
   const [view, setView] = useState('map'); // map | loadout
-  const [openMission, setOpenMission] = useState(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState(null);
   const [celebrate, setCelebrate] = useState(false);
   const [xpPop, setXpPop] = useState(null);
+  const [victory, setVictory] = useState(null); // { mission, next }
+  const [lastAction, setLastAction] = useState(null);
+  const missionRef = useRef(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -103,6 +109,31 @@ export default function Launch() {
     }
   };
 
+  // Shared post-action bookkeeping: mission-completion detection, XP pop,
+  // victory card, first-customer celebration and the undoable last action.
+  // Everything is re-derived from the saved records, so a failed call or a
+  // duplicate tap can never double-award.
+  const applyOutcome = (before, next, action) => {
+    const after = computeLaunchStats(next.prospects, next.missions);
+    const firstCustomer = before.customerCount === 0 && after.customerCount > 0;
+    const newDone = after.missionStates.filter((m, i) => !before.missionStates[i].completed && m.completed);
+    newDone.forEach((m) => trackEvent('launch_mission_completed', { mission_type: m.type }));
+    if (firstCustomer) {
+      trackEvent('first_customer_won');
+      trackEvent('grow_unlocked');
+      setCelebrate(true); // the big Level-Up overlay IS the celebration here
+    } else if (newDone.length > 0) {
+      const done = newDone[0];
+      setVictory({ mission: done, next: after.missionStates[done.index + 1] || null });
+      const withXp = newDone.find((m) => m.xp > 0);
+      if (withXp) {
+        setXpPop({ id: Date.now(), amount: withXp.xp });
+        setTimeout(() => setXpPop(null), 2200);
+      }
+    }
+    setLastAction(action || null);
+  };
+
   const handleEnter = () =>
     run(async () => {
       const data = await startLaunchQuest({
@@ -113,37 +144,88 @@ export default function Launch() {
       return data;
     });
 
+  // ONE-TAP PROGRESS — the big button on the active quest.
+  const handleOneTap = (prospect) =>
+    run(async () => {
+      const def = stats.missionStates[stats.activeIndex];
+      const next = await oneTapAction(game.quest, def.type, prospect);
+      trackEvent(prospect ? 'launch_action_recorded' : 'launch_action_quick_added', { mission_type: def.type });
+      const created = next.lastAdded || null;
+      applyOutcome(
+        stats,
+        next,
+        created
+          ? { type: 'add', prospectId: created.id, createdStatus: created.status }
+          : {
+              type: 'advance',
+              prospectId: prospect.id,
+              prevStatus: prospect.status,
+              wasCustomer: def.type === 'first_customer',
+              wasDeclined: false,
+            }
+      );
+      return next;
+    });
+
+  const handleQuickAdd = (name, status) =>
+    run(async () => {
+      const next = await quickAddContact(game.quest, name, status);
+      trackEvent('prospect_added');
+      const created = next.lastAdded;
+      applyOutcome(stats, next, { type: 'add', prospectId: created.id, createdStatus: created.status });
+      return next;
+    });
+
+  // Roster actions (add / ladder / declined) share the same outcome handling.
   const handleAddProspect = (data) =>
     run(async () => {
       const next = await addProspect(game.quest, data);
       trackEvent('prospect_added');
+      const created = next.lastAdded || null;
+      applyOutcome(
+        stats,
+        next,
+        created ? { type: 'add', prospectId: created.id, createdStatus: 'prospect' } : null
+      );
       return next;
     });
 
   const handleAdvance = (prospect, nextStatus, extra = {}) =>
     run(async () => {
-      const before = stats;
       const next = await advanceProspect(game.quest, prospect, nextStatus, extra);
-      const after = computeLaunchStats(next.prospects, next.missions);
-      const newDone = after.missionStates.filter((m, i) => !before.missionStates[i].completed && m.completed);
-      newDone.forEach((m) => trackEvent('launch_mission_completed', { mission_type: m.type }));
-      const withXp = newDone.find((m) => m.xp > 0);
-      if (withXp) {
-        setXpPop({ id: Date.now(), amount: withXp.xp });
-        setTimeout(() => setXpPop(null), 2200);
-      }
-      if (nextStatus === 'customer' && before.customerCount === 0 && after.customerCount > 0) {
-        trackEvent('first_customer_won');
-        trackEvent('grow_unlocked');
-        setCelebrate(true);
-      }
+      applyOutcome(stats, next, {
+        type: 'advance',
+        prospectId: prospect.id,
+        prevStatus: prospect.status,
+        wasCustomer: nextStatus === 'customer',
+        wasDeclined: nextStatus === 'declined',
+      });
       return next;
     });
+
+  // CORRECTION — reverses the most recent action; XP, quest status and
+  // unlocks are re-derived from records so nothing is left double-awarded.
+  const handleUndo = () =>
+    run(async () => {
+      const next = await undoLastAction(game.quest, lastAction);
+      trackEvent('launch_action_undone');
+      setLastAction(null);
+      setVictory(null);
+      return next;
+    });
+
+  const handleUpdateDetails = (prospect, details) =>
+    run(() => updateProspectDetails(game.quest, prospect, details));
 
   const handleOpenLoadout = () => {
     setView('loadout');
     if (stats && stats.missionStates[0] && !stats.missionStates[0].completed && game) {
-      run(() => completeLoadout(game.quest));
+      run(async () => {
+        const next = await completeLoadout(game.quest);
+        trackEvent('launch_mission_completed', { mission_type: 'loadout' });
+        applyOutcome(stats, next, null);
+        return next;
+      });
     }
   };
 
@@ -238,7 +320,7 @@ export default function Launch() {
   // phase === 'ready'
   const businessName = (build.accepted.brand && build.accepted.brand.chosen_name) || build.model.name;
   const loadoutItems = buildLoadoutItems(build.accepted);
-  const activeDef = openMission ? stats.missionStates.find((m) => m.type === openMission) : null;
+  const activeDef = stats.activeIndex >= 0 ? stats.missionStates[stats.activeIndex] : null;
 
   return (
     <div className="mx-auto w-full max-w-2xl space-y-5">
@@ -266,6 +348,45 @@ export default function Launch() {
             </div>
           )}
 
+          {activeDef ? (
+            <div ref={missionRef}>
+              <ActiveMission
+                def={activeDef}
+                prospects={game.prospects}
+                accepted={build.accepted}
+                dna={build.dna}
+                busy={busy}
+                lastAction={lastAction}
+                onOneTap={handleOneTap}
+                onQuickAdd={handleQuickAdd}
+                onUndo={handleUndo}
+                onUpdateDetails={handleUpdateDetails}
+                onOpenLoadout={handleOpenLoadout}
+                onRosterAdd={handleAddProspect}
+                onRosterAdvance={handleAdvance}
+                onAskUsed={() => trackEvent('ask_hustledrop_used')}
+              />
+            </div>
+          ) : (
+            <div className="rounded-2xl border-2 border-primary/40 bg-brand-gradient-soft p-6 text-center">
+              <Trophy className="mx-auto h-6 w-6 text-primary" />
+              <div className="mt-2 font-mono text-[10px] font-bold tracking-[0.3em] text-primary">MAIN QUEST COMPLETE</div>
+              <h2 className="mt-2 text-xl font-bold tracking-tight text-foreground">
+                You recorded your first paying customer.
+              </h2>
+              <p className="mt-2 text-xs leading-relaxed text-muted-foreground">
+                Every quest in this world is done — your next chapter is keeping them coming back.
+              </p>
+              <Link
+                to="/grow"
+                className="mt-4 inline-flex items-center gap-2 rounded-full bg-brand-gradient px-6 py-2.5 text-sm font-semibold text-white transition hover:scale-[1.02]"
+              >
+                ENTER GROW MODE
+                <ArrowRight className="h-4 w-4" />
+              </Link>
+            </div>
+          )}
+
           <div className="flex gap-2">
             <button
               onClick={handleOpenLoadout}
@@ -278,24 +399,17 @@ export default function Launch() {
           <QuestMap
             stats={stats}
             avatar={build.avatar}
-            onOpenMission={(type) => (type === 'loadout' ? handleOpenLoadout() : setOpenMission(type))}
+            onOpenMission={(type) => {
+              if (type === 'loadout') {
+                handleOpenLoadout();
+              } else if (missionRef.current) {
+                missionRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' });
+              }
+            }}
             onOpenGrow={() => {
-              /* grow banner below handles navigation */
+              /* the active-quest / complete cards handle Grow navigation */
             }}
           />
-
-          {stats.customerCount > 0 && (
-            <div className="rounded-2xl border border-primary/30 bg-brand-gradient-soft p-5 text-center">
-              <div className="text-[10px] font-bold tracking-[0.25em] text-primary">NEW AREA UNLOCKED — GROW MODE</div>
-              <Link
-                to="/grow"
-                className="mt-3 inline-flex items-center gap-2 rounded-full bg-brand-gradient px-6 py-2.5 text-sm font-semibold text-white"
-              >
-                ENTER GROW MODE
-                <ArrowRight className="h-4 w-4" />
-              </Link>
-            </div>
-          )}
 
           {error && (
             <p className="rounded-xl border border-destructive/30 bg-destructive/10 p-3 text-xs text-foreground/90">
@@ -305,18 +419,8 @@ export default function Launch() {
         </>
       )}
 
-      {activeDef && (
-        <MissionDialog
-          def={activeDef}
-          prospects={game.prospects}
-          accepted={build.accepted}
-          dna={build.dna}
-          busy={busy}
-          onClose={() => setOpenMission(null)}
-          onAddProspect={handleAddProspect}
-          onAdvance={handleAdvance}
-          onAskUsed={() => trackEvent('ask_hustledrop_used')}
-        />
+      {victory && (
+        <MissionVictory mission={victory.mission} next={victory.next} onClose={() => setVictory(null)} />
       )}
 
       <AnimatePresence>

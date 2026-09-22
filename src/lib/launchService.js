@@ -40,12 +40,12 @@ export const OBJECTION_OPTIONS = [
   { value: 'unknown', label: "Don't know" },
 ];
 
-// Real-action ladder for a prospect.
+// Real-action ladder for a prospect — first-person action language only.
 export const PROSPECT_ACTIONS = {
-  prospect: { next: 'contacted', label: 'I SENT OUTREACH' },
-  contacted: { next: 'conversation', label: 'RECORD CONVERSATION' },
-  conversation: { next: 'followed_up', label: 'FOLLOW-UP SENT' },
-  followed_up: { next: 'lead', label: 'MARK AS LEAD' },
+  prospect: { next: 'contacted', label: 'I REACHED OUT' },
+  contacted: { next: 'conversation', label: 'I HAD A CONVERSATION' },
+  conversation: { next: 'followed_up', label: 'I FOLLOWED UP' },
+  followed_up: { next: 'lead', label: "THEY'RE INTERESTED" },
 };
 
 // Deterministic mission definitions. DNA changes HOW missions are
@@ -72,7 +72,7 @@ export const MISSION_DEFS = [
     difficulty: 2,
     time: '30 min',
     cost: '$0',
-    mission: 'Find 10 people or organizations matching your ideal customer. Add each one to your roster.',
+    mission: 'Spot people who fit your ideal customer — tap the button the moment you find one. Names and details are optional.',
     why: 'Ten real names beat a hundred maybes — outreach only works when there is someone to send it to.',
   },
   {
@@ -84,7 +84,7 @@ export const MISSION_DEFS = [
     difficulty: 3,
     time: '10 min',
     cost: '$0',
-    mission: 'Send your first outreach message to a real prospect.',
+    mission: 'Send your first real outreach message — tap it the second you hit send.',
     why: 'The hardest message is usually the first one. Everything after this gets easier.',
   },
   {
@@ -96,7 +96,7 @@ export const MISSION_DEFS = [
     difficulty: 3,
     time: 'ongoing',
     cost: '$0',
-    mission: 'Hold 3 real conversations with prospects — questions, answers, interest.',
+    mission: 'Have 3 real back-and-forth conversations — questions, answers, interest.',
     why: 'Conversations are where you learn what people actually want — and whether your offer lands.',
   },
   {
@@ -120,7 +120,7 @@ export const MISSION_DEFS = [
     difficulty: 4,
     time: 'ongoing',
     cost: '$0',
-    mission: 'Turn a warm prospect into a qualified lead — someone seriously interested.',
+    mission: "Someone tells you they're seriously interested — tap it and pick who.",
     why: 'A lead is proof your offer has pull, not just push.',
   },
   {
@@ -162,15 +162,40 @@ export const MISSION_EQUIPPED = {
   first_customer: ['offer', 'price', 'objection', 'core_message'],
 };
 
-// One clear primary action per mission.
-export const PRIMARY_CTA = {
-  prospect_hunt: 'LOG A PROSPECT',
-  first_contact: 'SEND YOUR FIRST OUTREACH',
-  conversations: 'LOG A CONVERSATION',
-  follow_up: 'SEND A FOLLOW-UP',
-  first_lead: 'TURN A PROSPECT INTO A LEAD',
-  first_customer: 'RECORD YOUR FIRST CUSTOMER',
+// ---------- Launch 2.0: one-tap action config ----------
+// Each mission shows ONE big first-person button. `from` lists the prospect
+// statuses the action can apply to; when no contact is selected (or none
+// exist yet) the tap records an unnamed contact at the next status — the
+// user's real action, with details optional.
+export const MISSION_ONE_TAP = {
+  loadout: { cta: 'OPEN MY LOADOUT' },
+  prospect_hunt: { cta: 'I FOUND A POTENTIAL CUSTOMER', quickName: 'New contact' },
+  first_contact: { cta: 'I REACHED OUT', from: ['prospect'], quickName: 'Someone I messaged' },
+  conversations: { cta: 'I HAD A CONVERSATION', from: ['contacted'], quickName: 'Someone I talked to' },
+  follow_up: { cta: 'I FOLLOWED UP', from: ['conversation'], quickName: 'Someone I messaged again' },
+  first_lead: { cta: "SOMEONE'S INTERESTED", from: ['followed_up', 'conversation', 'contacted', 'prospect'], quickName: 'Someone interested' },
+  first_customer: {
+    cta: 'I LANDED MY FIRST CUSTOMER',
+    from: ['lead', 'followed_up', 'conversation', 'contacted', 'prospect'],
+    confirm: true,
+  },
 };
+
+const ONE_TAP_NEXT = {
+  prospect_hunt: 'prospect',
+  first_contact: 'contacted',
+  conversations: 'conversation',
+  follow_up: 'followed_up',
+  first_lead: 'lead',
+  first_customer: 'customer',
+};
+
+// Contacts the active mission's one-tap action can apply to.
+export function eligibleProspects(missionType, prospects) {
+  const from = MISSION_ONE_TAP[missionType] && MISSION_ONE_TAP[missionType].from;
+  if (!from) return [];
+  return (prospects || []).filter((p) => from.includes(p.status));
+}
 
 export const ACHIEVEMENTS = {
   first_move: { label: 'FIRST MOVE', desc: 'Completed first real Launch action.' },
@@ -382,6 +407,15 @@ async function recalc(quest, { actionToday = false } = {}) {
     updates.status = 'completed';
     updates.completed_at = new Date().toISOString();
   }
+  // Correction path: undoing the only customer returns the quest and the
+  // business to their pre-launch state — derived state always matches records.
+  if (stats.customerCount === 0 && state.quest.status === 'completed') {
+    updates.status = 'active';
+    updates.completed_at = null;
+    await base44.entities.SelectedBusiness.update(quest.selected_business_id, {
+      status: 'building',
+    }).catch(() => {});
+  }
   if (streak !== state.quest.streak) updates.streak = streak;
   if (lastAction !== state.quest.last_action_date) updates.last_action_date = lastAction;
 
@@ -463,14 +497,85 @@ export async function completeLoadout(quest) {
 }
 
 export async function addProspect(quest, { name_or_alias, channel, notes }) {
-  await base44.entities.Prospect.create({
+  const created = await base44.entities.Prospect.create({
     launch_quest_id: quest.id,
     name_or_alias: String(name_or_alias || '').trim().slice(0, 120),
     channel: channel || 'other',
     status: 'prospect',
     notes: notes || '',
   });
-  return recalc(quest, { actionToday: true });
+  const next = await recalc(quest, { actionToday: true });
+  return { ...next, lastAdded: created };
+}
+
+// Quick create — one-tap progress records the user's real action first;
+// details can be added afterwards and are never required.
+async function createProspect(quest, { name_or_alias, status }) {
+  return base44.entities.Prospect.create({
+    launch_quest_id: quest.id,
+    name_or_alias: String(name_or_alias || 'New contact').trim().slice(0, 120),
+    channel: 'other',
+    status: status || 'prospect',
+    notes: '',
+  });
+}
+
+export async function quickAddContact(quest, name, status = 'prospect') {
+  const created = await createProspect(quest, { name_or_alias: name, status });
+  const next = await recalc(quest, { actionToday: true });
+  return { ...next, lastAdded: created };
+}
+
+// ONE-TAP PROGRESS — advances the selected contact, or records the action on
+// a fresh unnamed contact when nobody is selected. No fabrication: the user
+// is always recording their own real action.
+export async function oneTapAction(quest, missionType, prospect) {
+  const nextStatus = ONE_TAP_NEXT[missionType];
+  if (!nextStatus) return loadQuestState(quest);
+  if (prospect && prospect.status !== nextStatus) return advanceProspect(quest, prospect, nextStatus);
+  const created = await createProspect(quest, {
+    name_or_alias: (MISSION_ONE_TAP[missionType] || {}).quickName,
+    status: nextStatus,
+  });
+  const next = await recalc(quest, { actionToday: true });
+  return { ...next, lastAdded: created };
+}
+
+// CORRECTION — reverses the most recent recorded action. XP, quest status,
+// achievements and unlocks are all re-derived from records, so undo can
+// never leave a double award behind.
+export async function undoLastAction(quest, lastAction) {
+  if (!lastAction || !lastAction.prospectId) return loadQuestState(quest);
+  const list = await base44.entities.Prospect.filter({ launch_quest_id: quest.id }, '-created_date', 200);
+  const p = (list || []).find((x) => x.id === lastAction.prospectId);
+  if (!p) return loadQuestState(quest);
+  if (lastAction.type === 'add') {
+    // Only undo while the record is untouched since the tap.
+    if (p.status === lastAction.createdStatus) await base44.entities.Prospect.delete(p.id);
+  } else {
+    await base44.entities.Prospect.update(p.id, { status: lastAction.prevStatus });
+    if (lastAction.wasCustomer) {
+      const wins = await base44.entities.CustomerWin.filter({ launch_quest_id: quest.id }, '-created_date', 50);
+      if (wins && wins[0]) await base44.entities.CustomerWin.delete(wins[0].id);
+    }
+    if (lastAction.wasDeclined) {
+      const convs = await base44.entities.CustomerConversation.filter({ prospect_id: p.id }, '-created_date', 50);
+      if (convs && convs[0]) await base44.entities.CustomerConversation.delete(convs[0].id);
+    }
+  }
+  return recalc(quest, {});
+}
+
+// ADD DETAILS — optional enrichment of a quick-tapped contact. Never changes
+// progress counts.
+export async function updateProspectDetails(quest, prospect, details) {
+  await base44.entities.Prospect.update(prospect.id, {
+    name_or_alias:
+      details.name_or_alias !== undefined ? String(details.name_or_alias).trim().slice(0, 120) : prospect.name_or_alias,
+    channel: details.channel !== undefined ? details.channel : prospect.channel,
+    notes: details.notes !== undefined ? details.notes : prospect.notes,
+  });
+  return recalc(quest, {});
 }
 
 export async function advanceProspect(quest, prospect, nextStatus, extra = {}) {
