@@ -5,8 +5,8 @@ import { DNA_TYPES } from '@/lib/dnaDisplay';
 // Sprite container for the official HustleDrop pixel-art assets.
 // Artwork: transparent PNG/WebP rendered with object-fit CONTAIN — characters
 // are never cropped. Pixel edges are preserved (no blur, no aggressive
-// upscaling). Until an asset is assigned, a clearly-labelled placeholder slot
-// is shown — no substitute artwork is generated.
+// upscaling). Until the official asset is assigned, a polished DNA-monogram
+// token is shown — no developer placeholder text in the production UI.
 export default function SpriteDisplay({ avatar, size = 'md' }) {
   const meta = DNA_TYPES[avatar?.dna_type] || {};
   const slot = `${meta.code || '?'}-${avatar?.presentation === 'feminine' ? 'F' : 'M'}`;
@@ -26,9 +26,19 @@ export default function SpriteDisplay({ avatar, size = 'md' }) {
   }
 
   return (
-    <div className={`${box} flex flex-col items-center justify-center rounded-lg border-2 border-dashed bg-white/[0.03] text-center ${meta.chip || 'border-white/20'}`}>
-      <span className="font-mono text-lg font-bold text-foreground/70">{slot}</span>
-      <span className="mt-1 px-1 font-mono text-[8px] uppercase leading-tight text-muted-foreground">sprite pending upload</span>
+    <div
+      className={`${box} flex flex-col items-center justify-center rounded-lg border-2 bg-brand-gradient-soft text-center ${
+        meta.chip || 'border-white/20'
+      }`}
+    >
+      <span className="font-mono text-xl font-bold text-foreground/80">{slot}</span>
+      <span
+        className={`mt-0.5 px-1 font-mono text-[8px] font-bold uppercase leading-tight ${
+          meta.accent || 'text-muted-foreground'
+        }`}
+      >
+        {(meta.label || 'HUSTLE DNA').split(' ')[0]}
+      </span>
     </div>
   );
 }

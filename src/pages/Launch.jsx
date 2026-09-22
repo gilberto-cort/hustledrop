@@ -15,6 +15,7 @@ import QuestMap from '@/components/launch/QuestMap';
 import MissionDialog from '@/components/launch/MissionDialog';
 import LoadoutPanel from '@/components/launch/LoadoutPanel';
 import LevelUpOverlay from '@/components/launch/LevelUpOverlay';
+import { AnimatePresence, motion } from 'framer-motion';
 
 // LAUNCH MODE — a lightweight retro-RPG business adventure. Every mechanic
 // maps to a real-world action; all progress persists (LaunchQuest, missions,
@@ -29,6 +30,7 @@ export default function Launch() {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState(null);
   const [celebrate, setCelebrate] = useState(false);
+  const [xpPop, setXpPop] = useState(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -123,11 +125,13 @@ export default function Launch() {
       const before = stats;
       const next = await advanceProspect(game.quest, prospect, nextStatus, extra);
       const after = computeLaunchStats(next.prospects, next.missions);
-      after.missionStates.forEach((m, i) => {
-        if (!before.missionStates[i].completed && m.completed) {
-          trackEvent('launch_mission_completed', { mission_type: m.type });
-        }
-      });
+      const newDone = after.missionStates.filter((m, i) => !before.missionStates[i].completed && m.completed);
+      newDone.forEach((m) => trackEvent('launch_mission_completed', { mission_type: m.type }));
+      const withXp = newDone.find((m) => m.xp > 0);
+      if (withXp) {
+        setXpPop({ id: Date.now(), amount: withXp.xp });
+        setTimeout(() => setXpPop(null), 2200);
+      }
       if (nextStatus === 'customer' && before.customerCount === 0 && after.customerCount > 0) {
         trackEvent('first_customer_won');
         setCelebrate(true);
@@ -310,8 +314,26 @@ export default function Launch() {
           onClose={() => setOpenMission(null)}
           onAddProspect={handleAddProspect}
           onAdvance={handleAdvance}
+          onAskUsed={() => trackEvent('ask_hustledrop_used')}
         />
       )}
+
+      <AnimatePresence>
+        {xpPop && (
+          <motion.div
+            key={xpPop.id}
+            initial={{ opacity: 0, y: 12, scale: 0.9 }}
+            animate={{ opacity: 1, y: -16, scale: 1 }}
+            exit={{ opacity: 0, y: -36 }}
+            transition={{ duration: 0.35 }}
+            className="pointer-events-none fixed inset-x-0 top-24 z-40 flex justify-center"
+          >
+            <span className="rounded-full border border-primary/40 bg-card/95 px-5 py-2 font-mono text-sm font-bold tracking-wider text-primary shadow-[0_0_30px_rgba(168,85,247,0.45)]">
+              +{xpPop.amount} XP
+            </span>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {celebrate && <LevelUpOverlay onClose={() => setCelebrate(false)} />}
     </div>

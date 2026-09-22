@@ -15,6 +15,20 @@ const NAV = [
 export default function AppLayout() {
   const { user, isAuthenticated, logout } = useAuth();
   const location = useLocation();
+  const navRef = React.useRef(null);
+  const linkRefs = React.useRef({});
+
+  // Single scrollable nav row: keep the active section visible on narrow screens.
+  React.useEffect(() => {
+    const el = linkRefs.current[location.pathname];
+    const nav = navRef.current;
+    if (el && nav) {
+      nav.scrollTo({
+        left: Math.max(0, el.offsetLeft - nav.clientWidth / 2 + el.clientWidth / 2),
+        behavior: 'smooth',
+      });
+    }
+  }, [location.pathname]);
 
   return (
     <div className="min-h-screen bg-background text-foreground">
@@ -51,15 +65,18 @@ export default function AppLayout() {
             )}
           </div>
         </div>
-        <nav className="mx-auto max-w-6xl px-4 sm:px-6">
-          <div className="flex flex-wrap items-center justify-center gap-x-1 gap-y-1.5 py-2 sm:h-12 sm:flex-nowrap sm:justify-start sm:py-0">
+        <nav className="mx-auto max-w-6xl px-2 sm:px-6">
+          <div ref={navRef} className="flex h-12 items-center gap-1 overflow-x-auto scrollbar-none">
             {NAV.map((item) => {
               const active = location.pathname === item.path;
               return (
                 <NavLink
                   key={item.path}
+                  ref={(el) => {
+                    linkRefs.current[item.path] = el;
+                  }}
                   to={item.path}
-                  className={`relative whitespace-nowrap rounded-lg px-3 py-1.5 text-xs font-semibold tracking-wider transition ${
+                  className={`relative shrink-0 whitespace-nowrap rounded-lg px-3 py-1.5 text-xs font-semibold tracking-wider transition ${
                     active ? 'text-foreground' : 'text-muted-foreground hover:text-foreground'
                   }`}
                 >

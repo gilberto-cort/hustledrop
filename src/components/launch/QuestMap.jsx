@@ -49,7 +49,9 @@ export default function QuestMap({ stats, avatar, onOpenMission, onOpenGrow }) {
               {i > 0 && (
                 <div
                   className={`h-6 w-0.5 rounded ${
-                    n.state === 'locked' ? 'bg-white/10' : 'bg-gradient-to-b from-primary to-accent'
+                    n.state === 'locked'
+                      ? 'bg-white/10'
+                      : 'bg-gradient-to-b from-primary via-accent to-orange-400 shadow-[0_0_10px_rgba(236,72,153,0.4)]'
                   }`}
                 />
               )}
@@ -65,7 +67,7 @@ export default function QuestMap({ stats, avatar, onOpenMission, onOpenGrow }) {
                   n.state === 'done'
                     ? 'border-gradient glow-primary'
                     : n.state === 'current'
-                      ? 'border-primary/50 bg-brand-gradient-soft hover:scale-[1.01]'
+                      ? 'border-primary/50 bg-brand-gradient-soft shadow-[0_0_24px_rgba(168,85,247,0.3)] hover:scale-[1.01]'
                       : 'border-white/10 bg-white/[0.02] opacity-50'
                 } ${clickable ? 'cursor-pointer' : 'cursor-default'}`}
               >

@@ -13,7 +13,15 @@ const EXAMPLES = [
 // ASK HUSTLEDROP — contextual advisory assistant. It knows the selected
 // business, accepted modules, HustleProfile and HustleDNA (assembled
 // server-side) but can never modify content — advice only.
-export default function AskHustleDrop({ onUsed }) {
+const DEFAULT_DESCRIPTION =
+  'Your assistant knows your business, accepted modules, profile and HustleDNA. Advice only — it never changes your content. Apply changes yourself via EDIT or TRY ANOTHER.';
+
+export default function AskHustleDrop({
+  onUsed,
+  examples = EXAMPLES,
+  description = DEFAULT_DESCRIPTION,
+  placeholder = 'Ask anything about building your business…',
+}) {
   const [question, setQuestion] = useState('');
   const [busy, setBusy] = useState(false);
   const [answer, setAnswer] = useState(null);
@@ -46,17 +54,14 @@ export default function AskHustleDrop({ onUsed }) {
         <Sparkles className="h-4 w-4 text-primary" />
         <span className="text-xs font-semibold tracking-[0.25em] text-muted-foreground">ASK HUSTLEDROP</span>
       </div>
-      <p className="mt-2 text-[11px] leading-relaxed text-muted-foreground">
-        Your assistant knows your business, accepted modules, profile and HustleDNA. Advice only — it never changes
-        your content. Apply changes yourself via EDIT or TRY ANOTHER.
-      </p>
+      <p className="mt-2 text-[11px] leading-relaxed text-muted-foreground">{description}</p>
 
       <div className="mt-4 flex gap-2">
         <input
           value={question}
           onChange={(e) => setQuestion(e.target.value)}
           onKeyDown={(e) => e.key === 'Enter' && ask()}
-          placeholder="Ask anything about building your business…"
+          placeholder={placeholder}
           className="flex-1 rounded-full border border-input bg-transparent px-4 py-2.5 text-sm text-foreground placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
         />
         <button
@@ -70,7 +75,7 @@ export default function AskHustleDrop({ onUsed }) {
       </div>
 
       <div className="mt-3 flex flex-wrap gap-1.5">
-        {EXAMPLES.map((ex) => (
+        {examples.map((ex) => (
           <button
             key={ex}
             onClick={() => {

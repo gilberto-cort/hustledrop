@@ -151,6 +151,27 @@ export const DNA_MISSION_STYLE = {
   builder: 'A tangible sample or live demonstration speaks for you — make one, show it.',
 };
 
+// Equipped Build assets surfaced contextually inside each mission (Launch
+// uses them as read-only tools; Build stays where they are edited).
+export const MISSION_EQUIPPED = {
+  prospect_hunt: ['customer', 'intro'],
+  first_contact: ['dm', 'email', 'in_person'],
+  conversations: ['in_person', 'intro', 'objection'],
+  follow_up: ['follow_up', 'follow_up_2'],
+  first_lead: ['follow_up', 'objection', 'price'],
+  first_customer: ['offer', 'price', 'objection', 'core_message'],
+};
+
+// One clear primary action per mission.
+export const PRIMARY_CTA = {
+  prospect_hunt: 'LOG A PROSPECT',
+  first_contact: 'SEND YOUR FIRST OUTREACH',
+  conversations: 'LOG A CONVERSATION',
+  follow_up: 'SEND A FOLLOW-UP',
+  first_lead: 'TURN A PROSPECT INTO A LEAD',
+  first_customer: 'RECORD YOUR FIRST CUSTOMER',
+};
+
 export const ACHIEVEMENTS = {
   first_move: { label: 'FIRST MOVE', desc: 'Completed first real Launch action.' },
   out_of_the_lab: { label: 'OUT OF THE LAB', desc: 'Showed the offer to a real potential customer.' },
@@ -273,6 +294,7 @@ export function buildLoadoutItems(accepted) {
   if (s.email_script) items.push({ key: 'email', label: 'EMAIL SCRIPT', value: s.email_script });
   if (s.in_person_script) items.push({ key: 'in_person', label: 'IN-PERSON SCRIPT', value: s.in_person_script });
   if (s.follow_up_1) items.push({ key: 'follow_up', label: 'FOLLOW-UP SCRIPT', value: s.follow_up_1 });
+  if (s.follow_up_2) items.push({ key: 'follow_up_2', label: 'FOLLOW-UP 2', value: s.follow_up_2 });
   if (s.common_objection) items.push({ key: 'objection', label: 'COMMON OBJECTION + RESPONSE', value: `${s.common_objection}\n\n${s.objection_response || ''}` });
   if (m.core_message) items.push({ key: 'core_message', label: 'CORE MARKETING MESSAGE', value: m.core_message });
   if (m.simple_promotion) items.push({ key: 'promotion', label: 'PROMOTION', value: m.simple_promotion });
@@ -360,6 +382,13 @@ async function recalc(quest, { actionToday = false } = {}) {
   let updatedQuest = state.quest;
   if (Object.keys(updates).length > 0) {
     updatedQuest = await base44.entities.LaunchQuest.update(quest.id, updates);
+    if (updates.status === 'completed') {
+      // First real paying customer → the selected business is LAUNCHED (GROW
+      // unlocks from the same milestone). A failure here must not block the win.
+      await base44.entities.SelectedBusiness.update(quest.selected_business_id, {
+        status: 'launched',
+      }).catch(() => {});
+    }
   }
 
   const missionUpdates = [];

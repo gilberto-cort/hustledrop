@@ -54,7 +54,7 @@ export default function Landing() {
           </div>
           <h1 className="text-balance text-4xl font-semibold leading-[1.05] tracking-tight sm:text-6xl">
             There Are <span className="text-gradient">1,000 Ways</span> to Make Money.
-            <br className="hidden sm:block" /> You Probably Need One.
+            <br className="hidden sm:block" /> You Only Need One.
           </h1>
           <p className="mx-auto mt-6 max-w-2xl text-pretty text-base text-muted-foreground sm:text-lg">
             HustleDrop matches your budget, skills, personality and schedule with businesses you can
