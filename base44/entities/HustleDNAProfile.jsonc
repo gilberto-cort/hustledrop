@@ -7,22 +7,28 @@
       "description": "Owner user id"
     },
     "hustler_score": {
-      "type": "number"
+      "type": "number",
+      "description": "Hustler archetype score, 0-100"
     },
     "digital_builder_score": {
-      "type": "number"
+      "type": "number",
+      "description": "Digital Builder archetype score, 0-100"
     },
     "creator_score": {
-      "type": "number"
+      "type": "number",
+      "description": "Creator archetype score, 0-100"
     },
     "connector_score": {
-      "type": "number"
+      "type": "number",
+      "description": "Connector archetype score, 0-100"
     },
     "operator_score": {
-      "type": "number"
+      "type": "number",
+      "description": "Operator archetype score, 0-100"
     },
     "builder_score": {
-      "type": "number"
+      "type": "number",
+      "description": "Builder archetype score, 0-100"
     },
     "primary_type": {
       "type": "string",
@@ -41,34 +47,42 @@
       "description": "Compact code representing the DNA mix"
     },
     "revenue_tempo": {
-      "type": "string"
+      "type": "number",
+      "description": "Quick Start (0) to Long Build (100)"
     },
     "work_mode": {
-      "type": "string"
+      "type": "number",
+      "description": "Hands-On (0) to Digital (100)"
     },
     "social_energy": {
-      "type": "string"
+      "type": "number",
+      "description": "Independent (0) to People-Driven (100)"
     },
     "growth_style": {
-      "type": "string"
+      "type": "number",
+      "description": "Craft (0) to Systems (100)"
     },
     "selling_style": {
-      "type": "string"
+      "type": "number",
+      "description": "Attraction (0) to Outreach (100)"
     },
     "risk_approach": {
-      "type": "string"
+      "type": "number",
+      "description": "Test First (0) to Invest First (100)"
     },
     "strengths": {
       "type": "array",
       "items": {
         "type": "string"
-      }
+      },
+      "description": "Supported entrepreneurial strength tokens"
     },
     "traps": {
       "type": "array",
       "items": {
         "type": "string"
-      }
+      },
+      "description": "Execution trap tokens to watch for"
     }
   },
   "required": [

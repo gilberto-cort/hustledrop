@@ -10,6 +10,7 @@ import PrimaryMatchCard from '@/components/results/PrimaryMatchCard';
 import AltMatchCard from '@/components/results/AltMatchCard';
 import CompareMatchesModal from '@/components/results/CompareMatchesModal';
 import { selectBusiness } from '@/lib/matchService';
+import DnaResultSection from '@/components/dna/DnaResultSection';
 
 export default function Results() {
   const { user } = useAuth();
@@ -153,6 +154,8 @@ export default function Results() {
           </div>
         </div>
       )}
+
+      <DnaResultSection />
 
       <CompareMatchesModal open={compareOpen} onOpenChange={setCompareOpen} matches={matches.slice(0, 3)} />
     </div>

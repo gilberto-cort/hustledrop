@@ -79,6 +79,7 @@
   .glow-soft {
     box-shadow: 0 8px 60px -20px rgba(236,72,153,0.25);
   }
+  .pixelated { image-rendering: pixelated; }
   .scrollbar-none::-webkit-scrollbar { display: none; }
   .scrollbar-none { -ms-overflow-style: none; scrollbar-width: none; }
 }

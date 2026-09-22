@@ -25,6 +25,9 @@ import AppLayout from '@/components/AppLayout';
 import AdminLayout from '@/components/AdminLayout';
 import AdminMatches from '@/pages/admin/AdminMatches';
 import MatchTester from '@/pages/admin/MatchTester';
+import DnaTester from '@/pages/admin/DnaTester';
+import Avatars from '@/pages/admin/Avatars';
+import HustleDNA from '@/pages/HustleDNA';
 import { Navigate } from 'react-router-dom';
 
 const AuthenticatedApp = () => {
@@ -64,6 +67,7 @@ const AuthenticatedApp = () => {
       <Route element={<ProtectedRoute unauthenticatedElement={<Navigate to="/login" replace />} />}>
         <Route element={<AppLayout />}>
           <Route path="/results" element={<Results />} />
+          <Route path="/hustledna" element={<HustleDNA />} />
           <Route path="/dashboard" element={<Dashboard />} />
           <Route path="/build" element={<Build />} />
           <Route path="/launch" element={<Launch />} />
@@ -76,6 +80,8 @@ const AuthenticatedApp = () => {
             <Route path="/admin" element={<Admin />} />
             <Route path="/admin/matches" element={<AdminMatches />} />
             <Route path="/admin/match-tester" element={<MatchTester />} />
+            <Route path="/admin/dna-tester" element={<DnaTester />} />
+            <Route path="/admin/avatars" element={<Avatars />} />
           </Route>
         </Route>
       </Route>

@@ -1,7 +1,8 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import EmptyState from '@/components/EmptyState';
-import { Dna, Target, Briefcase, Rocket, Sparkles, ArrowRight } from 'lucide-react';
+import { Target, Briefcase, Rocket, Sparkles, ArrowRight } from 'lucide-react';
+import DnaDashboardCard from '@/components/dna/DnaDashboardCard';
 
 export default function Dashboard() {
   return (
@@ -14,13 +15,7 @@ export default function Dashboard() {
       </div>
 
       <div className="grid gap-4 sm:grid-cols-2">
-        <DashboardCard
-          icon={Dna}
-          label="HustleDNA"
-          title="Discover your entrepreneur type"
-          description="Take HustleMatch to reveal your HustleDNA profile."
-          cta={{ label: 'Go to DISCOVER', to: '/discover' }}
-        />
+        <DnaDashboardCard />
         <DashboardCard
           icon={Target}
           label="Current HustleMatch"

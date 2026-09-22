@@ -5,6 +5,7 @@ import { LogOut } from 'lucide-react';
 
 const NAV = [
   { label: 'DISCOVER', path: '/discover' },
+  { label: 'DNA', path: '/hustledna' },
   { label: 'MATCH', path: '/results' },
   { label: 'BUILD', path: '/build' },
   { label: 'LAUNCH', path: '/launch' },

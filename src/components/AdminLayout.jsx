@@ -12,6 +12,8 @@ const NAV = [
   { label: 'Analytics', path: '/admin/analytics' },
   { label: 'Referrals', path: '/admin/referrals' },
   { label: 'Match Tester', path: '/admin/match-tester' },
+  { label: 'DNA Tester', path: '/admin/dna-tester' },
+  { label: 'Avatars', path: '/admin/avatars' },
 ];
 
 export default function AdminLayout() {
