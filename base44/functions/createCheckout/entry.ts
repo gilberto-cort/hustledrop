@@ -3,12 +3,12 @@ import { secrets } from 'base44:runtime';
 import {
   findEntitlement, PURCHASE_PRODUCT, PURCHASE_AMOUNT_USD, stripeGet,
 } from '../../shared/entitlement.js';
+import { getAppOrigin } from '../../shared/appOrigin.js';
 
 // CREATE CHECKOUT — starts the $19 one-time "Build My Business" purchase for
 // the caller's latest selected business. Requires an authenticated user (the
 // entitlement belongs to the account). Double-payment protection: an existing
 // completed purchase never charges again, and an open session is reused.
-const APP_URL = 'https://hustle-drop-labs.base44.app';
 
 export default async function(req) {
   try {
@@ -40,9 +40,16 @@ export default async function(req) {
     let reuseSession = null;
     if (pending && pending.provider_checkout_id) {
       reuseSession = await stripeGetSafe(`/v1/checkout/sessions/${pending.provider_checkout_id}`);
-      if (reuseSession && !reuseSession.error && reuseSession.status === 'open' && reuseSession.url) {
+      const reuseOrigin = getAppOrigin(req);
+      const reusable =
+        reuseSession && !reuseSession.error && reuseSession.status === 'open' && reuseSession.url &&
+        typeof reuseSession.success_url === 'string' &&
+        (!reuseOrigin || reuseSession.success_url.startsWith(`${reuseOrigin}/`));
+      if (reusable) {
         return Response.json({ status: 'checkout_started', url: reuseSession.url, reused: true });
       }
+      // An open session that points at an outdated origin is never reused — a
+      // fresh session is created below so the return always lands on this app.
     }
 
     // Book the pending purchase BEFORE the session so the session can carry
@@ -67,11 +74,20 @@ export default async function(req) {
       model = null;
     }
 
+    // Success/cancel URLs are derived from the incoming request — the origin
+    // the user is actually browsing (current deployment URL or a future custom
+    // domain). If it can't be derived, fail loudly instead of redirecting the
+    // user to a dead app.
+    const appOrigin = getAppOrigin(req);
+    if (!appOrigin) {
+      console.log('createCheckout error: could not derive app origin from request');
+      return Response.json({ status: 'checkout_error' }, { status: 500 });
+    }
     const appId = secrets.get('BASE44_APP_ID') || Deno.env.get('BASE44_APP_ID') || '';
     const params = new URLSearchParams();
     params.set('mode', 'payment');
-    params.set('success_url', `${APP_URL}/build?checkout=success&session_id={CHECKOUT_SESSION_ID}`);
-    params.set('cancel_url', `${APP_URL}/build?checkout=cancelled`);
+    params.set('success_url', `${appOrigin}/build?checkout=success&session_id={CHECKOUT_SESSION_ID}`);
+    params.set('cancel_url', `${appOrigin}/build?checkout=cancelled`);
     params.set('client_reference_id', user.id);
     if (user.email) params.set('customer_email', user.email);
     params.set('line_items[0][quantity]', '1');

@@ -1,11 +1,22 @@
 import React from 'react';
-import { Lock, Check, AlertCircle, Loader2 } from 'lucide-react';
+import { AlertCircle, Loader2, ArrowRight } from 'lucide-react';
 
+// Outcomes, not internal module terminology — a beginner understands what
+// they'll walk away with.
 const INCLUDED = [
-  'CUSTOMER strategy', 'OFFER concepts', 'PRICING hypothesis', 'BRAND kit',
-  'SALES scripts', 'MARKETING kit', 'LAUNCH plan',
-  'Launch Loadout + Launch Mode', 'Ask HustleDrop business context', 'Persistent generated assets',
+  ['CUSTOMER', "Know who you're selling to."],
+  ['OFFER', 'Create something worth paying for.'],
+  ['STARTING PRICE', 'Choose a price to begin testing.'],
+  ['BRAND', 'Build your business identity.'],
+  ['SALES', 'Get ready-to-use outreach messages.'],
+  ['MARKETING', 'Know how to start getting attention.'],
+  ['LAUNCH', 'Enter your First Customer Quest.'],
+  ['SAVED', 'Your business stays saved — come back anytime.'],
 ];
+
+// The game, not the documents — compact differentiation of what happens after
+// the build: the business gets used, not filed away.
+const GAME_STEPS = ['BUILD', 'LAUNCH', 'FIRST CUSTOMER', 'GROW'];
 
 // BUILD MY BUSINESS — $19 one-time paywall. Reflects explicit payment states;
 // nothing is unlocked here — the server verifies every payment.
@@ -15,20 +26,28 @@ export default function PaywallCard({ modelName, fit, payment, busy, onStartChec
   return (
     <div className="space-y-4">
       <div className="rounded-2xl border-gradient p-6 text-center">
-        <Lock className="mx-auto h-6 w-6 text-primary" />
-        <div className="mt-3 text-xs font-semibold tracking-[0.25em] text-muted-foreground">UNLOCK THE BUSINESS BUILDER</div>
-        <h1 className="mt-2 text-2xl font-bold tracking-tight text-gradient">BUILD MY BUSINESS</h1>
-        <p className="mt-2 text-sm text-foreground/90">{modelName}</p>
-        {typeof fit === 'number' && (
-          <p className="mt-1 font-mono text-[10px] font-bold tracking-wider text-muted-foreground">
-            PERSONAL FIT {fit}/99
-          </p>
-        )}
+        <div className="text-[10px] font-semibold tracking-[0.25em] text-muted-foreground">UNLOCK THE BUSINESS BUILDER</div>
+        <h1 className="mx-auto mt-3 max-w-md text-xl font-bold leading-snug tracking-tight text-gradient sm:text-2xl">
+          TURN YOUR MATCH INTO A BUSINESS YOU CAN ACTUALLY LAUNCH
+        </h1>
+        <p className="mx-auto mt-3 max-w-md text-xs leading-relaxed text-muted-foreground">
+          We'll help you figure out who to sell to, what to offer, what to charge, what to call your business, how to
+          pitch it, and what to do to find your first customer.
+        </p>
+
+        <div className="mt-4 rounded-xl border border-white/10 bg-white/[0.03] px-4 py-3">
+          <p className="text-sm font-semibold text-foreground">{modelName}</p>
+          {typeof fit === 'number' && (
+            <p className="mt-0.5 font-mono text-[10px] font-bold tracking-wider text-primary">
+              PERSONAL FIT {fit}/99
+            </p>
+          )}
+        </div>
+
         <div className="mt-4 font-mono text-3xl font-bold text-foreground">$19</div>
         <div className="text-[10px] font-semibold tracking-widest text-muted-foreground">ONE-TIME — NOT A SUBSCRIPTION</div>
-        <p className="mx-auto mt-3 max-w-sm text-xs leading-relaxed text-muted-foreground">
-          HustleDrop builds this business WITH you — every module personalized to your HustleMatch, budget,
-          hours and HustleDNA. Regenerating modules for this same business never charges again.
+        <p className="mx-auto mt-3 max-w-sm text-[11px] leading-relaxed text-muted-foreground">
+          Regenerating modules for this same business never charges again.
         </p>
 
         {state === 'processing' ? (
@@ -77,25 +96,41 @@ export default function PaywallCard({ modelName, fit, payment, busy, onStartChec
 
         {state === 'not_started' && (
           <p className="mt-3 text-[10px] leading-relaxed text-muted-foreground">
-            Secure checkout via Stripe. Nothing is unlocked until payment is confirmed on our servers.
+            Secure one-time checkout powered by Stripe.
           </p>
         )}
       </div>
 
       <div className="rounded-2xl border border-white/10 bg-white/[0.02] p-5">
         <div className="text-[10px] font-bold tracking-widest text-muted-foreground">WHAT'S INCLUDED</div>
-        <ul className="mt-3 grid grid-cols-1 gap-1.5 sm:grid-cols-2">
-          {INCLUDED.map((item) => (
-            <li key={item} className="flex items-start gap-2 text-xs text-foreground/90">
-              <Check className="mt-0.5 h-3.5 w-3.5 shrink-0 text-primary" />
-              {item}
+        <ul className="mt-3 space-y-2">
+          {INCLUDED.map(([k, v]) => (
+            <li key={k} className="flex items-start gap-2.5 text-xs">
+              <span className="mt-0.5 w-24 shrink-0 font-mono text-[10px] font-bold tracking-wider text-primary">
+                {k}
+              </span>
+              <span className="text-foreground/90">{v}</span>
             </li>
           ))}
         </ul>
-        <p className="mt-3 text-[10px] leading-relaxed text-muted-foreground">
-          One purchase unlocks the Builder for this selected business. Your free HustleDNA and matches always
-          stay yours.
+      </div>
+
+      <div className="rounded-2xl border border-white/10 bg-white/[0.02] p-5 text-center">
+        <div className="text-[10px] font-bold tracking-widest text-muted-foreground">THIS ISN'T ANOTHER BUSINESS PDF.</div>
+        <p className="mx-auto mt-2 max-w-md text-xs leading-relaxed text-foreground/85">
+          Build your business. Equip your Launch Loadout. Complete real-world quests. Earn XP. Unlock achievements.
+          Get your first customer. Enter the next world.
         </p>
+        <div className="mt-4 flex flex-wrap items-center justify-center gap-1.5">
+          {GAME_STEPS.map((s, i) => (
+            <React.Fragment key={s}>
+              {i > 0 && <ArrowRight className="h-3 w-3 text-muted-foreground/60" />}
+              <span className="rounded-full border border-white/15 bg-white/5 px-2.5 py-1 font-mono text-[10px] font-bold tracking-wider text-foreground/90">
+                {s}
+              </span>
+            </React.Fragment>
+          ))}
+        </div>
       </div>
     </div>
   );

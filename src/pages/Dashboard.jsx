@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { base44 } from '@/api/base44Client';
 import { BUILD_MODULES } from '@/lib/builderService';
 import { getNextMove } from '@/lib/nextMove';
+import { resolveProgression, WELCOME } from '@/lib/progression';
 import { hasEntitlement } from '@/lib/paymentService';
 import { DNA_TYPES } from '@/lib/dnaDisplay';
 import DnaDashboardCard from '@/components/dna/DnaDashboardCard';
@@ -19,7 +20,8 @@ function greeting() {
 }
 
 // ACTION DASHBOARD — one greeting, one business, one NEXT MOVE. Everything
-// derives from real persisted records; nothing is decoration.
+// derives from ONE progression resolver over real persisted records, so the
+// stage badge, Journey, Next Move and level display can never disagree.
 export default function Dashboard() {
   const [data, setData] = useState(null); // null = loading
   const [failed, setFailed] = useState(false);
@@ -89,22 +91,9 @@ export default function Dashboard() {
     };
   }, [loadKey]);
 
-  const moveState = useMemo(
-    () =>
-      data
-        ? {
-            profileComplete: !!(data.profile && data.profile.profile_complete),
-            hasMatch: data.hasMatch,
-            selected: !!data.selected,
-            entitled: data.entitled,
-            acceptedModules: data.acceptedModules,
-            quest: !!data.quest,
-            firstCustomer: data.customers > 0,
-          }
-        : null,
-    [data]
-  );
-  const move = useMemo(() => (moveState ? getNextMove(moveState) : null), [moveState]);
+  // ONE resolver — Dashboard, Journey, Next Move and level/XP all read this.
+  const progression = useMemo(() => (data ? resolveProgression(data) : null), [data]);
+  const move = useMemo(() => (progression ? getNextMove(progression) : null), [progression]);
 
   if (failed) {
     return (
@@ -128,7 +117,7 @@ export default function Dashboard() {
     );
   }
 
-  if (!data || !move) {
+  if (!data || !progression || !move) {
     return (
       <div className="flex justify-center py-24">
         <div className="h-8 w-8 animate-spin rounded-full border-4 border-white/10 border-t-primary" />
@@ -136,16 +125,18 @@ export default function Dashboard() {
     );
   }
 
+  const welcome = WELCOME[progression.stage] || WELCOME.DISCOVER;
   const primaryDna = data.dna ? DNA_TYPES[data.dna.primary_type] : null;
   const businessName =
     (data.selected && data.model && data.model.name) || (primaryDna ? `${primaryDna.label}'s next venture` : 'Your business');
-  const buildPercent = Math.round((data.acceptedModules.length / BUILD_MODULES.length) * 100);
+  const buildPercent = Math.min(100, Math.round((data.acceptedModules.length / BUILD_MODULES.length) * 100));
 
   return (
     <div className="space-y-5">
       <div>
         <h1 className="text-2xl font-semibold tracking-tight sm:text-3xl">{greeting()}</h1>
-        <p className="mt-1 text-sm text-muted-foreground">One next move. That's the whole game.</p>
+        <p className="mt-1 text-base font-semibold tracking-tight text-foreground sm:text-lg">{welcome.title}</p>
+        <p className="mt-1 text-sm text-muted-foreground">{welcome.body}</p>
       </div>
 
       <NextMoveCard
@@ -153,30 +144,25 @@ export default function Dashboard() {
         modelFamily={data.model ? data.model.family : null}
         fit={data.fit}
         dna={data.dna ? data.dna.hustle_code : null}
-        stage={move.stage}
+        stage={progression.stage}
         move={move}
       />
 
       <StatCards
-        level={data.quest ? data.quest.level : null}
-        xp={data.quest ? data.quest.xp : 0}
+        level={progression.level}
+        levelLabel={progression.levelLabel}
+        xp={progression.xp}
         questStage={data.quest ? data.quest.current_stage : null}
         buildPercent={buildPercent}
         customers={data.customers}
         achievements={data.achievements}
       />
 
-      <DnaDashboardCard />
+      {/* DNA comes from the Dashboard's single authoritative load — the card
+          never re-guesses and never shows the retake CTA for an existing DNA. */}
+      <DnaDashboardCard dna={data.dna} loading={false} />
 
-      <JourneyProgress
-        discover={!!(data.profile && data.profile.profile_complete)}
-        dna={!!data.dna}
-        match={data.hasMatch}
-        selected={!!data.selected}
-        buildDone={buildPercent === 100}
-        launchDone={data.customers > 0}
-        growUnlocked={data.customers > 0}
-      />
+      <JourneyProgress journey={progression.journey} stage={progression.stage} />
     </div>
   );
 }

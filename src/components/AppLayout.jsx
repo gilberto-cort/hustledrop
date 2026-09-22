@@ -17,6 +17,19 @@ export default function AppLayout() {
   const location = useLocation();
   const navRef = React.useRef(null);
   const linkRefs = React.useRef({});
+  const [navOverflow, setNavOverflow] = React.useState(false);
+
+  // Edge fades only when the nav actually overflows — the last tab is never
+  // silently clipped; the fade signals there's more to scroll.
+  React.useEffect(() => {
+    const check = () => {
+      const nav = navRef.current;
+      setNavOverflow(!!nav && nav.scrollWidth > nav.clientWidth + 4);
+    };
+    check();
+    window.addEventListener('resize', check);
+    return () => window.removeEventListener('resize', check);
+  }, []);
 
   // Single scrollable nav row: keep the active section visible on narrow screens.
   React.useEffect(() => {
@@ -66,7 +79,14 @@ export default function AppLayout() {
           </div>
         </div>
         <nav className="mx-auto max-w-6xl px-2 sm:px-6">
-          <div ref={navRef} className="flex h-12 items-center gap-1 overflow-x-auto scrollbar-none">
+          <div
+            ref={navRef}
+            className={`flex h-12 items-center gap-1 overflow-x-auto scrollbar-none ${
+              navOverflow
+                ? '[mask-image:linear-gradient(to_right,transparent_0,black_16px,black_calc(100%-16px),transparent_100%)]'
+                : ''
+            }`}
+          >
             {NAV.map((item) => {
               const active = location.pathname === item.path;
               return (

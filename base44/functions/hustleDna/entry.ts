@@ -52,7 +52,16 @@ export default async function(req) {
       traps: dna.traps,
     };
 
-    const existing = await base44.entities.HustleDNAProfile.filter({ user_id: user.id }, '-created_date', 5);
+    // ONE DNA record per user — hydration can double-invoke this endpoint
+    // (rapid navigation, refresh, sign-out/in), so converge first: keep the
+    // oldest record, drop duplicates, then upsert. Idempotent by construction.
+    let existing = await base44.entities.HustleDNAProfile.filter({ user_id: user.id }, 'created_date', 10);
+    if (existing && existing.length > 1) {
+      for (const r of existing.slice(1)) {
+        await base44.entities.HustleDNAProfile.delete(r.id);
+      }
+      existing = [existing[0]];
+    }
     let created = true;
     if (existing && existing[0]) {
       await base44.entities.HustleDNAProfile.update(existing[0].id, payload);

@@ -25,7 +25,7 @@ import { loadSession, saveSession, syncResponseToServer, saveHustleProfile } fro
 export default function Results() {
   const { user } = useAuth();
   const navigate = useNavigate();
-  const [phase, setPhase] = useState('loading'); // loading | analyzing | ready | no-profile | no-eligible | error
+  const [phase, setPhase] = useState('loading'); // loading | migrating | analyzing | ready | no-profile | no-eligible | error
   const [loadKey, setLoadKey] = useState(0);
   const [matches, setMatches] = useState([]);
   const [confidence, setConfidence] = useState(null);
@@ -38,6 +38,7 @@ export default function Results() {
   const [compareOpen, setCompareOpen] = useState(false);
   const [shareOpen, setShareOpen] = useState(false);
   const [shared, setShared] = useState(false);
+  const autoRetried = React.useRef(false);
 
   const loadAvatarFor = async (dnaObj) => {
     try {
@@ -75,6 +76,8 @@ export default function Results() {
           const complete = QUIZ_QUESTIONS.every((q) => isAnswerValid(q, answers[q.key]));
           if (complete) {
             try {
+              // Intentional state — migration in flight is never an error.
+              if (!cancelled) setPhase('migrating');
               await saveHustleProfile(buildHustleProfile(answers, user?.id));
               const migrated = { ...local, record_ids: { ...(local.record_ids || {}) } };
               for (const q of QUIZ_QUESTIONS) {
@@ -114,6 +117,14 @@ export default function Results() {
         setConfidence(data.confidence);
         setPhase('analyzing');
       } catch (e) {
+        // Cold starts and transient network hiccups fail once — retry silently
+        // before ever showing an error, so the user never sees a false "not
+        // found" while their saved results are simply still loading.
+        if (!autoRetried.current) {
+          autoRetried.current = true;
+          if (!cancelled) setLoadKey((k) => k + 1);
+          return;
+        }
         if (!cancelled) setPhase('error');
         return;
       }
@@ -150,7 +161,7 @@ export default function Results() {
     return () => {
       cancelled = true;
     };
-  }, [loadKey]);
+  }, [loadKey, user?.id]);
 
   const retryDna = async () => {
     setDnaError(false);
@@ -201,10 +212,21 @@ export default function Results() {
     trackEvent('result_shared', { business_model_id: primary.model.id, rank: 1 });
   };
 
-  if (phase === 'loading') {
+  if (phase === 'loading' || phase === 'migrating') {
+    const migrating = phase === 'migrating';
     return (
-      <div className="flex justify-center py-24">
+      <div className="flex flex-col items-center justify-center gap-4 py-24 text-center">
         <div className="h-8 w-8 animate-spin rounded-full border-4 border-white/10 border-t-primary" />
+        <div>
+          <div className="font-mono text-xs font-bold tracking-[0.25em] text-foreground">
+            {migrating ? 'SAVING YOUR HUSTLE PROFILE…' : 'LOADING YOUR HUSTLEMATCH…'}
+          </div>
+          <p className="mt-1.5 text-xs text-muted-foreground">
+            {migrating
+              ? 'Connecting your results to your account — one moment.'
+              : 'Your saved results are on their way.'}
+          </p>
+        </div>
       </div>
     );
   }
@@ -222,14 +244,14 @@ export default function Results() {
         </div>
         <EmptyState
           icon={Target}
-          title="Finish HustleMatch to see your results"
-          description="Complete the questionnaire and your matches will be calculated from your answers — we never fabricate results."
+          title="You haven't completed HustleMatch yet."
+          description="Take the questionnaire and your matches will be calculated from your answers — we never fabricate results."
           action={
             <button
               onClick={() => navigate('/discover')}
               className="inline-flex items-center gap-2 rounded-full bg-brand-gradient px-4 py-2 text-sm font-semibold text-white"
             >
-              Finish HustleMatch
+              FIND MY HUSTLE
               <ArrowRight className="h-4 w-4" />
             </button>
           }
@@ -267,11 +289,14 @@ export default function Results() {
     return (
       <EmptyState
         icon={Target}
-        title="Matches unavailable right now"
-        description="We couldn't load your results. Nothing was lost — you can safely try again."
+        title="MATCHES UNAVAILABLE RIGHT NOW"
+        description="We couldn't connect to your saved matches. Your results are safe."
         action={
           <button
-            onClick={() => setLoadKey((k) => k + 1)}
+            onClick={() => {
+              autoRetried.current = false;
+              setLoadKey((k) => k + 1);
+            }}
             className="inline-flex items-center gap-2 rounded-full bg-brand-gradient px-4 py-2 text-sm font-semibold text-white"
           >
             <RotateCcw className="h-4 w-4" />

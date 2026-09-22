@@ -96,9 +96,31 @@ export default async function(req) {
       return Response.json({ status: 'no_profile' });
     }
 
-    // 2. Reuse the stored result set unless the profile changed after it was
-    // created — rematches create a NEW set and never corrupt history.
-    const existing = await base44.entities.MatchResult.filter({ user_id: user.id }, '-created_date', 10);
+    // 2. Deterministic result set — the set id is derived from the profile and
+    // its last update, so retries and racing double-invocations (navigation,
+    // refresh, sign-out/in) converge on ONE set instead of duplicating records.
+    // Rematches (profile edited) produce a new id and never corrupt history.
+    const existing = await base44.entities.MatchResult.filter({ user_id: user.id }, '-created_date', 20);
+    const profileStamp = profile.updated_date ? new Date(profile.updated_date).getTime() : 0;
+    const setId = 'rs_' + profile.id + '_' + profileStamp;
+    const currentSet = (existing || []).filter((r) => r.result_set_id === setId);
+    if (currentSet.length >= 3) {
+      const models = await loadActiveModels(base44);
+      const modelsById = {};
+      models.forEach((m) => { modelsById[m.id] = m; });
+      return Response.json({
+        status: 'ok',
+        created: false,
+        matches: buildMatches(currentSet, modelsById),
+        confidence: {
+          score: currentSet[0].match_confidence,
+          category: categoryFromScore(currentSet[0].match_confidence),
+        },
+        tie_breaker_needed: currentSet.some((r) => r.tie_breaker_needed),
+      });
+    }
+    // Legacy freshness guard for sets saved before deterministic ids (and any
+    // set created after the profile's last update).
     if (existing && existing.length >= 3) {
       const setId = existing[0].result_set_id;
       const setRecords = existing.filter((r) => r.result_set_id === setId);
@@ -140,8 +162,7 @@ export default async function(req) {
 
     const tieNeeded = detectTie(eligible);
 
-    // 6. Persist the top 3 as a new MatchResult set
-    const setId = 'rs_' + Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
+    // 6. Persist the top 3 as a new MatchResult set (deterministic setId above)
     const top = eligible.slice(0, 3);
     const records = top.map((r) => ({
       user_id: profile.user_id || user.id,
@@ -163,7 +184,24 @@ export default async function(req) {
       tie_breaker_needed: r.rank <= 2 ? tieNeeded : false,
       result_set_id: setId,
     }));
-    const created = await base44.entities.MatchResult.bulkCreate(records);
+    await base44.entities.MatchResult.bulkCreate(records);
+
+    // Racing retries can double-create the same set — converge on the earliest
+    // record per rank (idempotent even under concurrent invocation).
+    const after = await base44.entities.MatchResult.filter(
+      { user_id: user.id, result_set_id: setId },
+      'created_date',
+      20
+    );
+    const keep = {};
+    for (const r of after || []) {
+      if (!keep[r.rank] || r.created_date < keep[r.rank].created_date) keep[r.rank] = r;
+    }
+    const keptIds = new Set(Object.values(keep).map((r) => r.id));
+    for (const r of after || []) {
+      if (!keptIds.has(r.id)) await base44.entities.MatchResult.delete(r.id);
+    }
+    const finalSet = (after || []).filter((r) => keptIds.has(r.id)).sort((a, b) => a.rank - b.rank);
 
     const modelsById = {};
     models.forEach((m) => { modelsById[m.id] = m; });
@@ -172,7 +210,7 @@ export default async function(req) {
     return Response.json({
       status: 'ok',
       created: true,
-      matches: buildMatches(created, modelsById),
+      matches: buildMatches(finalSet, modelsById),
       confidence,
       tie_breaker_needed: tieNeeded,
     });
