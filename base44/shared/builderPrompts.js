@@ -305,7 +305,7 @@ Everything must feel personal and specific. No deceptive urgency. No spam — al
       },
       required: ['introduction', 'dm_script', 'email_script', 'follow_up_1', 'follow_up_2', 'common_objection', 'objection_response', 'soft_close', 'call_to_action'],
     },
-    },
+    };
   },
 
   marketing: (ctx) => ({

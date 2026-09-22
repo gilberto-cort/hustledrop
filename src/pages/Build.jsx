@@ -6,6 +6,7 @@ import EmptyState from '@/components/EmptyState';
 import { Briefcase, ArrowRight, RotateCcw, Check } from 'lucide-react';
 import {
   BUILD_MODULES, loadBuilderState, generateModule, acceptAsset, saveEditedContent, createManualBrandAsset,
+  createManualMarketingAsset,
 } from '@/lib/builderService';
 import { hasEntitlement, startCheckout, verifyCheckoutWithRetry } from '@/lib/paymentService';
 import { useAuth } from '@/lib/AuthContext';
@@ -53,6 +54,7 @@ export default function Build() {
   const [generating, setGenerating] = useState(null);
   const [keeping, setKeeping] = useState(false);
   const [brandPicking, setBrandPicking] = useState(false);
+  const [manualBusy, setManualBusy] = useState(false);
   const [editor, setEditor] = useState(null);
   const [genError, setGenError] = useState(null);
   const [avatar, setAvatar] = useState(null);
@@ -222,7 +224,9 @@ export default function Build() {
     try {
       return await generateModule(moduleKey, options);
     } catch (e) {
-      return { status: 'client_error' };
+      // Surface the server's own error text (500s carry a message) instead of
+      // a generic "request failed" — nothing was saved either way.
+      return { status: 'client_error', error: (e && e.message) || 'request failed' };
     }
   };
 
@@ -352,6 +356,24 @@ export default function Build() {
       setGenError('Could not save your name — please try again.');
     } finally {
       setBrandPicking(false);
+    }
+  };
+
+  // MANUAL CAMPAIGN FALLBACK — the user builds their own mission 06 from
+  // their accepted material when the AI kit is unavailable. Plain draft,
+  // explicitly labelled, explicitly accepted.
+  const handleManualCampaign = async (values) => {
+    if (generating || manualBusy || !state || !state.selection) return;
+    setManualBusy(true);
+    setGenError(null);
+    try {
+      const asset = await createManualMarketingAsset(user && user.id, state.selection.id, values);
+      setState((prev) => ({ ...prev, assets: [asset, ...(prev.assets || [])] }));
+      trackEvent('marketing_campaign_entered_manually');
+    } catch (e) {
+      setGenError('Could not save your campaign — please try again.');
+    } finally {
+      setManualBusy(false);
     }
   };
 
@@ -541,6 +563,8 @@ export default function Build() {
             onConfirm={(patch) => confirmMission(activeKey, patch)}
             onPickName={handlePickName}
             onManualName={handleManualBrandName}
+            onManualCampaign={handleManualCampaign}
+            manualBusy={manualBusy}
           />
         </MissionShell>
       )}

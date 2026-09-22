@@ -71,11 +71,14 @@ export async function loadBuilderContext(base44, module_type, userId) {
   let positives = [];
   let negatives = [];
   const matchResults = await base44.entities.MatchResult.filter({ user_id: userId }, '-created_date', 10);
-  const top = (matchResults || []).find((r) => r.rank === 1);
-  if (top) {
-    fit = top.personal_fit;
-    positives = top.positive_factors || [];
-    negatives = top.negative_factors || [];
+  // Scope to the business the user is ACTUALLY building — after a rematch the
+  // newest result set belongs to a different business and must never leak
+  // its fit or match factors into this business's generation context.
+  const own = (matchResults || []).find((r) => r.business_model_id === selection.business_model_id);
+  if (own) {
+    fit = own.personal_fit;
+    positives = own.positive_factors || [];
+    negatives = own.negative_factors || [];
   }
 
   const assets = await base44.entities.GeneratedAsset.filter(

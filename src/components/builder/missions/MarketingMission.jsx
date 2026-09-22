@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Megaphone, Zap, Tag, Users, MapPin, Globe, Check } from 'lucide-react';
 import StrategyDrawer from './StrategyDrawer';
 import MarketingModule from '../MarketingModule';
+import ManualCampaignForm from './ManualCampaignForm';
 import { MISSION_META } from './missionMeta';
 
 // MISSION 06 — LAUNCH YOUR CAMPAIGN. Channel cards built from the generated
@@ -19,10 +20,11 @@ function channelsFrom(content) {
   ].filter(Boolean);
 }
 
-export default function MarketingMission({ content, accepted, busy, generating, onGenerate, onConfirm }) {
+export default function MarketingMission({ content, accepted, busy, generating, onGenerate, onConfirm, onManualCampaign, manualBusy }) {
   const [selected, setSelected] = useState(null); // Set of channel keys — init below
   const [expanded, setExpanded] = useState(null);
   const [drawer, setDrawer] = useState(false);
+  const [manual, setManual] = useState(false);
 
   if (!content) {
     return (
@@ -37,6 +39,73 @@ export default function MarketingMission({ content, accepted, busy, generating, 
         >
           {generating ? 'PLANNING…' : MISSION_META.marketing.generate}
         </button>
+        <div className="mt-2.5 border-t border-white/10 pt-3">
+          <button
+            onClick={() => setManual((m) => !m)}
+            className="text-[10px] font-bold tracking-widest text-muted-foreground transition hover:text-foreground"
+          >
+            {manual ? 'HIDE MANUAL CAMPAIGN' : 'AI UNAVAILABLE? BUILD MY OWN CAMPAIGN'}
+          </button>
+          {manual && <ManualCampaignForm busy={manualBusy} onSubmit={onManualCampaign} />}
+        </div>
+      </div>
+    );
+  }
+
+  // MANUAL CAMPAIGN — user-built from their own accepted material. Never
+  // presented as AI-generated; the mission completes only on explicit
+  // acceptance below, never automatically.
+  if (content.manual) {
+    const chosenChannels = new Set(
+      Array.isArray(content.selected_channels) ? content.selected_channels : ['social']
+    );
+    return (
+      <div className="space-y-3">
+        <div className="rounded-xl border-2 border-primary/40 bg-brand-gradient-soft p-4 text-center">
+          <div className="font-mono text-[9px] font-bold tracking-widest text-primary">YOU BUILT THIS CAMPAIGN</div>
+          <p className="mt-1.5 text-sm font-semibold leading-relaxed text-foreground">{content.core_message}</p>
+        </div>
+        {[
+          { label: 'FIRST OUTREACH ACTION', value: content.outreach_action },
+          { label: 'FIRST MEASURABLE GOAL', value: content.first_goal },
+        ]
+          .filter((f) => f.value)
+          .map((f) => (
+            <div key={f.label} className="rounded-xl border border-white/10 bg-white/[0.02] p-3.5">
+              <div className="font-mono text-[9px] font-bold tracking-widest text-muted-foreground">{f.label}</div>
+              <p className="mt-1 text-xs leading-relaxed text-foreground/90">{f.value}</p>
+            </div>
+          ))}
+        <div className="rounded-xl border border-white/10 bg-white/[0.02] p-3.5">
+          <div className="font-mono text-[9px] font-bold tracking-widest text-muted-foreground">MY CHANNELS</div>
+          <div className="mt-1.5 flex flex-wrap gap-1.5">
+            {[...chosenChannels].map((key) => (
+              <span
+                key={key}
+                className="rounded-full border border-primary/40 bg-primary/10 px-2.5 py-1 font-mono text-[9px] font-bold tracking-widest text-primary"
+              >
+                {key.toUpperCase()}
+              </span>
+            ))}
+          </div>
+        </div>
+        {!accepted && (
+          <div className="rounded-2xl border border-primary/25 bg-brand-gradient-soft p-4">
+            <button
+              onClick={() => onConfirm({ selected_channels: [...chosenChannels] })}
+              disabled={busy}
+              className="w-full rounded-full bg-brand-gradient py-3.5 text-sm font-bold tracking-wider text-white transition hover:scale-[1.01] disabled:opacity-40"
+            >
+              {busy ? 'LAUNCHING…' : 'LAUNCH MY CAMPAIGN'}
+            </button>
+            <p className="mt-2 text-center text-[10px] leading-relaxed text-muted-foreground">
+              Saves this as YOUR mission 06 — you confirm it yourself. Nothing is marked complete until you do.
+            </p>
+          </div>
+        )}
+        <p className="rounded-lg border border-dashed border-white/15 p-2.5 text-center text-[10px] leading-relaxed text-muted-foreground">
+          You wrote this campaign yourself — no AI kit was generated for it.
+        </p>
       </div>
     );
   }

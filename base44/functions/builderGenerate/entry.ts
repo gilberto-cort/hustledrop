@@ -57,6 +57,9 @@ export default async function(req) {
         response_json_schema: spec.schema,
       });
     } catch (e) {
+      // Logged server-side with the module + error so AI/schema failures are
+      // diagnosable from the function logs — never silent.
+      console.error('[builderGenerate] LLM failed for module=' + module_type, e);
       return Response.json({ status: 'generation_error', error: e.message });
     }
 
@@ -85,6 +88,9 @@ export default async function(req) {
 
     return Response.json({ status: 'ok', asset });
   } catch (error) {
+    // The 500 path is logged with the requested module so unexpected server
+    // failures (context loading, entitlement, persistence) are traceable.
+    console.error('[builderGenerate] unexpected failure for module=' + (body && body.module_type), error);
     return Response.json({ error: error.message }, { status: 500 });
   }
 }
