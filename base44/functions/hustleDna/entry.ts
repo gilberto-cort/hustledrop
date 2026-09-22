@@ -20,8 +20,9 @@ export default async function(req) {
     }
 
     // ---------- REAL DNA RUN ----------
-    // Derives HustleDNA from the caller's existing HustleMatch answers.
-    const profiles = await base44.entities.HustleProfile.list('-created_date', 1);
+    // Derives HustleDNA from the caller's existing HustleMatch answers
+    // (explicitly user-scoped — server-side SDK clients bypass RLS).
+    const profiles = await base44.entities.HustleProfile.filter({ user_id: user.id }, '-created_date', 5);
     const profile = profiles && profiles[0];
     if (!profile || !profile.profile_complete) {
       return Response.json({ status: 'no_profile' });
@@ -51,7 +52,7 @@ export default async function(req) {
       traps: dna.traps,
     };
 
-    const existing = await base44.entities.HustleDNAProfile.list('-created_date', 1);
+    const existing = await base44.entities.HustleDNAProfile.filter({ user_id: user.id }, '-created_date', 5);
     let created = true;
     if (existing && existing[0]) {
       await base44.entities.HustleDNAProfile.update(existing[0].id, payload);

@@ -46,6 +46,7 @@ export default function Build() {
   const [state, setState] = useState(null);
   const [activeKey, setActiveKey] = useState('customer');
   const [generating, setGenerating] = useState(null);
+  const [keeping, setKeeping] = useState(false);
   const [brandPicking, setBrandPicking] = useState(false);
   const [editor, setEditor] = useState(null);
   const [genError, setGenError] = useState(null);
@@ -190,6 +191,8 @@ export default function Build() {
   };
 
   const handleKeep = async (asset) => {
+    if (keeping) return;
+    setKeeping(true);
     try {
       const updated = await acceptAsset(asset, assets.filter((a) => a.module_type === asset.module_type));
       setState((prev) => ({
@@ -203,6 +206,8 @@ export default function Build() {
       trackEvent('module_accepted', { module_type: asset.module_type });
     } catch (e) {
       setGenError('Could not save your choice — please try again.');
+    } finally {
+      setKeeping(false);
     }
   };
 

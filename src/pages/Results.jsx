@@ -19,6 +19,8 @@ import AltMatches from '@/components/results/AltMatches';
 import CompareMatchesModal from '@/components/results/CompareMatchesModal';
 import MatchShareCard from '@/components/results/MatchShareCard';
 import { selectBusiness } from '@/lib/matchService';
+import { QUIZ_QUESTIONS, buildHustleProfile, isAnswerValid } from '@/lib/quizQuestions';
+import { loadSession, saveSession, syncResponseToServer, saveHustleProfile } from '@/lib/quizStore';
 
 export default function Results() {
   const { user } = useAuth();
@@ -65,6 +67,30 @@ export default function Results() {
         const res = await base44.functions.invoke('matchEngine', {});
         const data = res.data;
         if (!data || data.status === 'no_profile') {
+          // ANONYMOUS QUIZ MIGRATION — a completed quiz taken before login
+          // lives only in local storage. Adopt it into this account (profile
+          // + answers) instead of losing it, then re-run the pipeline.
+          const local = loadSession();
+          const answers = local?.answers || {};
+          const complete = QUIZ_QUESTIONS.every((q) => isAnswerValid(q, answers[q.key]));
+          if (complete) {
+            try {
+              await saveHustleProfile(buildHustleProfile(answers, user?.id));
+              const migrated = { ...local, record_ids: { ...(local.record_ids || {}) } };
+              for (const q of QUIZ_QUESTIONS) {
+                try {
+                  migrated.record_ids[q.key] = await syncResponseToServer(migrated, q.key, answers[q.key], user?.id);
+                } catch (e) {
+                  // answer sync is non-fatal — the profile migration above is what unlocks results
+                }
+              }
+              saveSession(migrated);
+              if (!cancelled) setLoadKey((k) => k + 1);
+              return;
+            } catch (e) {
+              // fall through to the empty state — nothing was deleted
+            }
+          }
           if (!cancelled) setPhase('no-profile');
           return;
         }

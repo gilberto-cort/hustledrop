@@ -1,6 +1,7 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.44';
 import { loadBuilderContext } from '../../shared/builderContext.js';
 import { ASK_SAFETY } from '../../shared/builderPrompts.js';
+import { findEntitlement } from '../../shared/entitlement.js';
 
 // ASK HUSTLEDROP — advisory assistant over the user's real builder state.
 // It can NEVER modify content: it returns advice only, and the user applies
@@ -15,14 +16,22 @@ export default async function(req) {
     const question = String(body.question || '').slice(0, 600).trim();
     if (!question) return Response.json({ error: 'question required' }, { status: 400 });
 
-    const loaded = await loadBuilderContext(base44, null);
+    const loaded = await loadBuilderContext(base44, null, user.id);
     if (loaded.error) return Response.json({ status: loaded.error });
+
+    // ENTITLEMENT: Ask HustleDrop is part of the paid Business Builder —
+    // it requires the same verified completed purchase (admins exempt).
+    // Refunds revoke new advice but never delete existing content.
+    if (user.role !== 'admin') {
+      const entitlement = await findEntitlement(base44, loaded.selection.id, user.id);
+      if (!entitlement) return Response.json({ status: 'payment_required' }, { status: 403 });
+    }
 
     // Launch + Grow progress so advice reflects the user's real pipeline.
     // Optional — advice still works without it.
     let progressContext = null;
     try {
-      const quests = await base44.entities.LaunchQuest.list('-created_date', 1);
+      const quests = await base44.entities.LaunchQuest.filter({ user_id: user.id }, '-created_date', 5);
       const quest = quests && quests[0];
       if (quest) {
         const [prospects, wins, growMissions] = await Promise.all([

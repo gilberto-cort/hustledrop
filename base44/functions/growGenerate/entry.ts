@@ -19,17 +19,18 @@ export default async function(req) {
       return Response.json({ error: 'invalid_mission' }, { status: 400 });
     }
 
-    const loaded = await loadBuilderContext(base44, null);
+    const loaded = await loadBuilderContext(base44, null, user.id);
     if (loaded.error) return Response.json({ status: loaded.error });
 
     // ENTITLEMENT: paid generation requires a verified completed purchase.
     if (user.role !== 'admin') {
-      const entitlement = await findEntitlement(base44, loaded.selection.id);
+      const entitlement = await findEntitlement(base44, loaded.selection.id, user.id);
       if (!entitlement) return Response.json({ status: 'payment_required' }, { status: 403 });
     }
 
-    // Real launch records for personalization (user-scoped).
-    const quests = await base44.entities.LaunchQuest.list('-created_date', 1);
+    // Real launch records for personalization (explicitly user-scoped —
+    // server-side SDK clients bypass RLS).
+    const quests = await base44.entities.LaunchQuest.filter({ user_id: user.id }, '-created_date', 5);
     const quest = quests && quests[0];
     if (!quest) return Response.json({ status: 'no_quest' });
 

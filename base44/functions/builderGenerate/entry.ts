@@ -36,13 +36,13 @@ export default async function(req) {
       return Response.json({ error: 'invalid_module' }, { status: 400 });
     }
 
-    const loaded = await loadBuilderContext(base44, module_type);
+    const loaded = await loadBuilderContext(base44, module_type, user.id);
     if (loaded.error) return Response.json({ status: loaded.error, missing: loaded.missing || [] });
 
     // ENTITLEMENT: paid generation requires a verified completed purchase for
     // THIS selected business. Refunds revoke generation but keep content.
     if (user.role !== 'admin') {
-      const entitlement = await findEntitlement(base44, loaded.selection.id);
+      const entitlement = await findEntitlement(base44, loaded.selection.id, user.id);
       if (!entitlement) return Response.json({ status: 'payment_required' }, { status: 403 });
     }
 
@@ -63,7 +63,7 @@ export default async function(req) {
     // Persist as a NEW draft version — previous versions are never deleted or
     // overwritten (TRY ANOTHER / EDIT preserve history).
     const existing = await base44.entities.GeneratedAsset.filter(
-      { selected_business_id: loaded.selection.id, module_type },
+      { selected_business_id: loaded.selection.id, module_type, user_id: user.id },
       '-created_date',
       200
     );

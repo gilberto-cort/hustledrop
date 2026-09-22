@@ -8,13 +8,13 @@ export const PURCHASE_PRODUCT = 'build_my_business';
 export const PURCHASE_AMOUNT_USD = 1900; // cents — $19 one-time
 
 // Active entitlement = a completed purchase for this selected business.
-export async function findEntitlement(client, selectedBusinessId) {
+// userId scopes the lookup to the caller — server-side SDK clients bypass
+// RLS, so ownership must be enforced explicitly, never implicitly.
+export async function findEntitlement(client, selectedBusinessId, userId) {
   if (!selectedBusinessId) return null;
-  const rows = await client.entities.Purchase.filter(
-    { selected_business_id: selectedBusinessId, status: 'completed' },
-    '-created_date',
-    5
-  );
+  const query = { selected_business_id: selectedBusinessId, status: 'completed' };
+  if (userId) query.user_id = userId;
+  const rows = await client.entities.Purchase.filter(query, '-created_date', 5);
   return (rows || [])[0] || null;
 }
 

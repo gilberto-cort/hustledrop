@@ -88,8 +88,9 @@ export default async function(req) {
     }
 
     // ---------- REAL MATCH RUN ----------
-    // 1. Load the caller's completed profile (user-scoped access)
-    const profiles = await base44.entities.HustleProfile.list('-created_date', 1);
+    // 1. Load the caller's completed profile (explicitly user-scoped —
+    // server-side SDK clients bypass RLS)
+    const profiles = await base44.entities.HustleProfile.filter({ user_id: user.id }, '-created_date', 5);
     const profile = profiles && profiles[0];
     if (!profile || !profile.profile_complete) {
       return Response.json({ status: 'no_profile' });
@@ -97,7 +98,7 @@ export default async function(req) {
 
     // 2. Reuse the stored result set unless the profile changed after it was
     // created — rematches create a NEW set and never corrupt history.
-    const existing = await base44.entities.MatchResult.list('-created_date', 10);
+    const existing = await base44.entities.MatchResult.filter({ user_id: user.id }, '-created_date', 10);
     if (existing && existing.length >= 3) {
       const setId = existing[0].result_set_id;
       const setRecords = existing.filter((r) => r.result_set_id === setId);

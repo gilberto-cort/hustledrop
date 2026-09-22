@@ -26,6 +26,7 @@ export default function AskHustleDrop({
   const [busy, setBusy] = useState(false);
   const [answer, setAnswer] = useState(null);
   const [error, setError] = useState(false);
+  const [locked, setLocked] = useState(false);
 
   const ask = async (q) => {
     const text = (q || question).trim();
@@ -33,11 +34,14 @@ export default function AskHustleDrop({
     setBusy(true);
     setError(false);
     setAnswer(null);
+    setLocked(false);
     try {
       const res = await askHustleDrop(text);
       if (res.status === 'ok') {
         setAnswer(res.answer);
         if (onUsed) onUsed();
+      } else if (res.status === 'payment_required') {
+        setLocked(true);
       } else {
         setError(true);
       }
@@ -93,6 +97,11 @@ export default function AskHustleDrop({
         <div className="mt-4 whitespace-pre-wrap rounded-xl border border-white/10 bg-white/[0.02] p-4 text-sm leading-relaxed text-foreground/90">
           {answer}
         </div>
+      )}
+      {locked && (
+        <p className="mt-4 rounded-xl border border-white/10 bg-white/[0.02] p-3 text-xs text-muted-foreground">
+          Ask HustleDrop is part of the Business Builder — unlock your business on the Build page to use it.
+        </p>
       )}
       {error && (
         <p className="mt-4 rounded-xl border border-white/10 bg-white/[0.02] p-3 text-xs text-muted-foreground">

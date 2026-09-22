@@ -20,6 +20,7 @@ import Register from '@/pages/Register';
 import ForgotPassword from '@/pages/ForgotPassword';
 import ResetPassword from '@/pages/ResetPassword';
 import ProtectedRoute from '@/components/ProtectedRoute';
+import UnauthenticatedRedirect from '@/components/UnauthenticatedRedirect';
 import AdminRoute from '@/components/AdminRoute';
 import AppLayout from '@/components/AppLayout';
 import AdminLayout from '@/components/AdminLayout';
@@ -29,7 +30,6 @@ import DnaTester from '@/pages/admin/DnaTester';
 import Avatars from '@/pages/admin/Avatars';
 import BuilderTester from '@/pages/admin/BuilderTester';
 import HustleDNA from '@/pages/HustleDNA';
-import { Navigate } from 'react-router-dom';
 
 const AuthenticatedApp = () => {
   const { isLoadingAuth, isLoadingPublicSettings, authError, navigateToLogin } = useAuth();
@@ -65,7 +65,7 @@ const AuthenticatedApp = () => {
       <Route element={<AppLayout />}>
         <Route path="/discover" element={<Discover />} />
       </Route>
-      <Route element={<ProtectedRoute unauthenticatedElement={<Navigate to="/login" replace />} />}>
+      <Route element={<ProtectedRoute unauthenticatedElement={<UnauthenticatedRedirect />} />}>
         <Route element={<AppLayout />}>
           <Route path="/results" element={<Results />} />
           <Route path="/hustledna" element={<HustleDNA />} />
@@ -75,7 +75,7 @@ const AuthenticatedApp = () => {
           <Route path="/grow" element={<Grow />} />
         </Route>
       </Route>
-      <Route element={<ProtectedRoute unauthenticatedElement={<Navigate to="/login" replace />} />}>
+      <Route element={<ProtectedRoute unauthenticatedElement={<UnauthenticatedRedirect />} />}>
         <Route element={<AdminRoute />}>
           <Route element={<AdminLayout />}>
             <Route path="/admin" element={<Admin />} />

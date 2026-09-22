@@ -16,12 +16,14 @@ export default async function(req) {
     const user = await base44.auth.me();
     if (!user) return Response.json({ error: 'Unauthorized' }, { status: 401 });
 
-    const selections = await base44.entities.SelectedBusiness.list('-created_date', 1);
+    // Explicitly user-scoped — server-side SDK clients bypass RLS, so the
+    // caller must never be handed another user's selection.
+    const selections = await base44.entities.SelectedBusiness.filter({ user_id: user.id }, '-created_date', 10);
     const selection = selections && selections[0];
     if (!selection) return Response.json({ status: 'no_selection' });
 
     // DOUBLE PAYMENT PROTECTION — already unlocked, never charge again.
-    const owned = await findEntitlement(base44, selection.id);
+    const owned = await findEntitlement(base44, selection.id, user.id);
     if (owned) return Response.json({ status: 'already_entitled' });
 
     const svc = base44.asServiceRole;

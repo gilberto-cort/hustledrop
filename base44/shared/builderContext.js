@@ -50,25 +50,27 @@ export function assembleContext({ profile, model, brandName, fit, dna, positives
 }
 
 // Loads the caller's own records and builds the generation context.
-export async function loadBuilderContext(base44, module_type) {
-  const profiles = await base44.entities.HustleProfile.list('-created_date', 1);
+// Server-side SDK clients bypass RLS, so every load is explicitly scoped to
+// the caller's user id — one user's data can never feed another's context.
+export async function loadBuilderContext(base44, module_type, userId) {
+  const profiles = await base44.entities.HustleProfile.filter({ user_id: userId }, '-created_date', 5);
   const profile = profiles && profiles[0];
   if (!profile || !profile.profile_complete) return { error: 'no_profile' };
 
-  const selections = await base44.entities.SelectedBusiness.list('-created_date', 10);
+  const selections = await base44.entities.SelectedBusiness.filter({ user_id: userId }, '-created_date', 10);
   const selection = selections && selections[0];
   if (!selection) return { error: 'no_selection' };
 
   const model = await base44.entities.BusinessModel.get(selection.business_model_id);
 
   let dna = null;
-  const dnaRows = await base44.entities.HustleDNAProfile.list('-created_date', 1);
+  const dnaRows = await base44.entities.HustleDNAProfile.filter({ user_id: userId }, '-created_date', 5);
   if (dnaRows && dnaRows[0]) dna = dnaRows[0];
 
   let fit = null;
   let positives = [];
   let negatives = [];
-  const matchResults = await base44.entities.MatchResult.list('-created_date', 10);
+  const matchResults = await base44.entities.MatchResult.filter({ user_id: userId }, '-created_date', 10);
   const top = (matchResults || []).find((r) => r.rank === 1);
   if (top) {
     fit = top.personal_fit;
@@ -77,7 +79,7 @@ export async function loadBuilderContext(base44, module_type) {
   }
 
   const assets = await base44.entities.GeneratedAsset.filter(
-    { selected_business_id: selection.id },
+    { selected_business_id: selection.id, user_id: userId },
     '-created_date',
     200
   );
