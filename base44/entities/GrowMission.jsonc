@@ -1,0 +1,101 @@
+{
+  "name": "GrowMission",
+  "type": "object",
+  "properties": {
+    "launch_quest_id": {
+      "type": "string",
+      "description": "LaunchQuest this Grow mission belongs to (same persistent quest as Launch)"
+    },
+    "mission_type": {
+      "type": "string",
+      "description": "Grow mission type (customer_1, review, referral, repeat_win, customer_3, system, customer_5)",
+      "enum": [
+        "customer_1",
+        "review",
+        "referral",
+        "repeat_win",
+        "customer_3",
+        "system",
+        "customer_5"
+      ]
+    },
+    "title": {
+      "type": "string",
+      "description": "Mission display title"
+    },
+    "status": {
+      "type": "string",
+      "description": "locked = not yet reached; active = current mission; completed = real action recorded",
+      "enum": [
+        "locked",
+        "active",
+        "completed"
+      ],
+      "default": "locked"
+    },
+    "content": {
+      "type": "object",
+      "description": "Generated mission content (follow-up message, referral kit, analysis, operating loop)",
+      "additionalProperties": true
+    },
+    "inputs": {
+      "type": "object",
+      "description": "User inputs and real-action evidence (sent flag, logged feedback, recorded source)",
+      "additionalProperties": true
+    },
+    "unlocked_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "completed_at": {
+      "type": "string",
+      "format": "date-time"
+    }
+  },
+  "required": [
+    "launch_quest_id",
+    "mission_type",
+    "title"
+  ],
+  "rls": {
+    "read": {
+      "$or": [
+        {
+          "created_by_id": "{{user.id}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    },
+    "create": {
+      "created_by_id": "{{user.id}}"
+    },
+    "update": {
+      "$or": [
+        {
+          "created_by_id": "{{user.id}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    },
+    "delete": {
+      "$or": [
+        {
+          "created_by_id": "{{user.id}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    }
+  }
+}

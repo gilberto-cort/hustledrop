@@ -18,6 +18,34 @@ export default async function(req) {
     const loaded = await loadBuilderContext(base44, null);
     if (loaded.error) return Response.json({ status: loaded.error });
 
+    // Launch + Grow progress so advice reflects the user's real pipeline.
+    // Optional — advice still works without it.
+    let progressContext = null;
+    try {
+      const quests = await base44.entities.LaunchQuest.list('-created_date', 1);
+      const quest = quests && quests[0];
+      if (quest) {
+        const [prospects, wins, growMissions] = await Promise.all([
+          base44.entities.Prospect.filter({ launch_quest_id: quest.id }, '-created_date', 200),
+          base44.entities.CustomerWin.filter({ launch_quest_id: quest.id }, '-created_date', 100),
+          base44.entities.GrowMission.filter({ launch_quest_id: quest.id }, '-created_date', 50),
+        ]);
+        const byStatus = (arr, statuses) => (arr || []).filter((x) => statuses.includes(x.status)).length;
+        progressContext = {
+          launch_quest_status: quest.status,
+          prospects: (prospects || []).length,
+          outreach_sent: byStatus(prospects, ['contacted', 'conversation', 'followed_up', 'lead', 'customer']),
+          conversations: byStatus(prospects, ['conversation', 'followed_up', 'lead', 'customer']),
+          leads: byStatus(prospects, ['lead', 'customer']),
+          customers: (wins || []).length,
+          customer_sources: (wins || []).map((w) => w.acquisition_channel).filter(Boolean),
+          grow_missions: (growMissions || []).map((m) => ({ type: m.mission_type, status: m.status })),
+        };
+      }
+    } catch (e) {
+      // progress context is optional
+    }
+
     const prompt = `You are "Ask HustleDrop", the advisory assistant inside HustleDrop's Business Builder.
 
 ${ASK_SAFETY}
@@ -29,7 +57,10 @@ ${JSON.stringify(loaded.context, null, 2)}
 
 THEIR ACCEPTED BUILDER MODULES (JSON):
 ${JSON.stringify(loaded.accepted, null, 2)}
-
+${progressContext ? `
+THEIR LAUNCH/GROW PROGRESS (real records):
+${JSON.stringify(progressContext, null, 2)}
+` : ''}
 USER QUESTION:
 ${question}
 

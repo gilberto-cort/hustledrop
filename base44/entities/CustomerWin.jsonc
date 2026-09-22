@@ -12,15 +12,28 @@
     },
     "sale_amount": {
       "type": "number",
-      "description": "Optional sale amount (user-reported)"
+      "description": "Optional sale amount (user-reported). Financial info is always optional."
     },
     "acquisition_channel": {
       "type": "string",
-      "description": "Optional source of the customer (e.g. facebook_group, referral, in_person)"
+      "description": "Source of the customer (e.g. facebook_group, referral, in_person)"
+    },
+    "display_name": {
+      "type": "string",
+      "description": "Optional customer display name or alias (user-entered, never required)"
+    },
+    "repeat_customer": {
+      "type": "boolean",
+      "default": false,
+      "description": "True when this is a repeat purchase by an existing customer"
+    },
+    "referral_source": {
+      "type": "string",
+      "description": "Optional \u2014 who referred this customer (recorded with the referrer's permission)"
     },
     "notes": {
       "type": "string",
-      "description": "Optional notes \u2014 what helped close the sale, customer nickname, etc."
+      "description": "Optional notes \u2014 what helped close the sale, feedback, etc."
     }
   },
   "required": [

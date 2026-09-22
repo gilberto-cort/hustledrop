@@ -28,12 +28,21 @@ export default function LevelUpOverlay({ onClose }) {
           <div className="font-mono text-sm text-muted-foreground line-through">LV. 3 LAUNCHER</div>
           <div className="font-mono text-lg font-bold text-gradient">LV. 4 ENTREPRENEUR</div>
         </div>
-        <div className="mt-4 font-mono text-xs font-bold tracking-[0.25em] text-primary">ENTREPRENEUR UNLOCKED</div>
+        <div className="mt-3 font-mono text-xs font-bold tracking-[0.25em] text-foreground">YOU LAUNCHED A BUSINESS.</div>
         <div className="mt-2 inline-block rounded-full border border-primary/40 bg-brand-gradient-soft px-3 py-1 font-mono text-[10px] font-bold tracking-widest text-primary">
           BUSINESS STATUS: LAUNCHED
         </div>
+        <div className="mt-4 space-y-1.5 rounded-xl border border-primary/30 bg-brand-gradient-soft p-4 text-left">
+          <div className="text-[10px] font-bold tracking-widest text-muted-foreground">NEW WORLD UNLOCKED</div>
+          <div className="font-mono text-lg font-bold text-gradient">GROW</div>
+          <div className="text-[10px] font-bold tracking-widest text-muted-foreground">MAIN QUEST</div>
+          <div className="font-mono text-xs font-bold tracking-wider text-foreground">
+            GET YOUR FIRST 5 CUSTOMERS
+          </div>
+        </div>
         <p className="mt-3 text-[11px] leading-relaxed text-muted-foreground">
-          One real payment validates more than a hundred plans. You proved someone will pay.
+          You completed the HustleDrop Launch milestone by recording your first real customer. That is not a
+          guarantee the business will succeed — it is proof you started.
         </p>
         <div className="mt-5 flex flex-col gap-2">
           <Link

@@ -134,6 +134,7 @@ export default function Launch() {
       }
       if (nextStatus === 'customer' && before.customerCount === 0 && after.customerCount > 0) {
         trackEvent('first_customer_won');
+        trackEvent('grow_unlocked');
         setCelebrate(true);
       }
       return next;

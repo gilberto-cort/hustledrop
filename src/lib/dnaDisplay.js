@@ -65,6 +65,7 @@ export const AVATAR_LEVELS = {
   2: 'FOUNDER',
   3: 'LAUNCHER',
   4: 'ENTREPRENEUR',
+  5: 'OPERATOR',
 };
 
 export function levelName(level) {

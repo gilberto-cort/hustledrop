@@ -1,0 +1,75 @@
+{
+  "name": "GrowState",
+  "type": "object",
+  "properties": {
+    "launch_quest_id": {
+      "type": "string",
+      "description": "LaunchQuest this Grow state belongs to (one per quest)"
+    },
+    "user_id": {
+      "type": "string",
+      "description": "Owner user id"
+    },
+    "daily_quest_completed_date": {
+      "type": "string",
+      "format": "date",
+      "description": "Date (YYYY-MM-DD) the current daily quest was completed \u2014 gates XP to once per day"
+    },
+    "daily_quest_completions": {
+      "type": "number",
+      "default": 0,
+      "description": "Total completed daily quests \u2014 the persistent source of daily-quest XP (one per day, cannot be farmed)"
+    },
+    "completed_side_quests": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Side quest keys completed (each awards XP once)"
+    }
+  },
+  "required": [
+    "launch_quest_id"
+  ],
+  "rls": {
+    "read": {
+      "$or": [
+        {
+          "created_by_id": "{{user.id}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    },
+    "create": {
+      "created_by_id": "{{user.id}}"
+    },
+    "update": {
+      "$or": [
+        {
+          "created_by_id": "{{user.id}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    },
+    "delete": {
+      "$or": [
+        {
+          "created_by_id": "{{user.id}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    }
+  }
+}

@@ -181,6 +181,11 @@ export const ACHIEVEMENTS = {
   market_signal: { label: 'MARKET SIGNAL', desc: 'Recorded meaningful customer feedback.' },
   first_lead: { label: 'FIRST LEAD', desc: 'Generated first qualified lead.' },
   first_customer: { label: 'FIRST CUSTOMER', desc: 'Recorded first paying customer.' },
+  prospector: { label: 'PROSPECTOR', desc: 'Logged 10 qualified prospects.' },
+  social_proof: { label: 'SOCIAL PROOF', desc: 'Requested honest customer feedback after a completed job.' },
+  referral_ready: { label: 'REFERRAL READY', desc: 'Created a simple referral system.' },
+  proof_of_motion: { label: 'PROOF OF MOTION', desc: 'Recorded three customers.' },
+  high_five: { label: 'HIGH FIVE', desc: 'Recorded five customers.' },
 };
 
 // ---------- Deterministic stats (pure — no SDK, no side effects) ----------
@@ -259,6 +264,7 @@ export function achievementTypesFor(stats) {
   if (stats.feedbackCount > 0) t.push('market_signal');
   if (stats.leadCount > 0) t.push('first_lead');
   if (stats.customerCount > 0) t.push('first_customer');
+  if (stats.prospectCount >= 10) t.push('prospector');
   return t;
 }
 
@@ -437,6 +443,12 @@ async function recalc(quest, { actionToday = false } = {}) {
   };
 }
 
+// Re-derive quest state from records — shared by Grow's pipeline so Launch
+// and Grow always read the same persistent metrics.
+export async function refreshQuest(quest, { actionToday = false } = {}) {
+  return recalc(quest, { actionToday });
+}
+
 export async function completeLoadout(quest) {
   const missions = await base44.entities.LaunchMission.filter({ launch_quest_id: quest.id }, '-created_date', 50);
   const rec = (missions || []).find((m) => m.mission_type === 'loadout');
@@ -482,6 +494,9 @@ export async function advanceProspect(quest, prospect, nextStatus, extra = {}) {
       offer_name: extra.offer_name || '',
       sale_amount: extra.sale_amount || null,
       acquisition_channel: extra.acquisition_channel || '',
+      display_name: extra.display_name || '',
+      repeat_customer: !!extra.repeat_customer,
+      referral_source: extra.referral_source || '',
       notes: extra.notes || '',
     });
   }
