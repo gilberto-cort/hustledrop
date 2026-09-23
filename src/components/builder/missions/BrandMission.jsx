@@ -22,11 +22,11 @@ function hexSwatches(text) {
   return (String(text || '').match(/#[0-9a-fA-F]{6}/g) || []).slice(0, 5);
 }
 
-export default function BrandMission({ content, accepted, busy, generating, brandPicking, onGenerate, onConfirm, onPickName, onManualName }) {
-  const [picked, setPicked] = useState(null);
+export default function BrandMission({ content, accepted, busy, generating, brandPicking, onGenerate, onConfirm, onPickName, onManualName, ui, onUi }) {
+  const [picked, setPicked] = useState(typeof (ui && ui.picked) === 'number' ? ui.picked : null);
   const [drawer, setDrawer] = useState(false);
-  const [manual, setManual] = useState(false);
-  const [manualName, setManualName] = useState('');
+  const [manual, setManual] = useState(!!(ui && ui.manual_open));
+  const [manualName, setManualName] = useState((ui && ui.manual_name) || '');
 
   // No content yet — generate name options first.
   if (!content) {
@@ -44,7 +44,11 @@ export default function BrandMission({ content, accepted, busy, generating, bran
         </button>
         <div className="mt-2.5 border-t border-white/10 pt-3">
           <button
-            onClick={() => setManual((m) => !m)}
+            onClick={() => {
+              const next = !manual;
+              setManual(next);
+              if (onUi) onUi({ manual_open: next });
+            }}
             className="text-[10px] font-bold tracking-widest text-muted-foreground transition hover:text-foreground"
           >
             {manual ? 'HIDE MANUAL ENTRY' : 'AI UNAVAILABLE? TYPE MY OWN NAME'}
@@ -54,7 +58,10 @@ export default function BrandMission({ content, accepted, busy, generating, bran
               <input
                 type="text"
                 value={manualName}
-                onChange={(e) => setManualName(e.target.value)}
+                onChange={(e) => {
+                  setManualName(e.target.value);
+                  if (onUi) onUi({ manual_name: e.target.value }, { debounceMs: 400 });
+                }}
                 placeholder="Your business name"
                 maxLength={60}
                 aria-label="Your business name"
@@ -87,7 +94,11 @@ export default function BrandMission({ content, accepted, busy, generating, bran
             return (
               <button
                 key={i}
-                onClick={() => setPicked(isPicked ? null : i)}
+                onClick={() => {
+                  const next = isPicked ? null : i;
+                  setPicked(next);
+                  if (onUi) onUi({ picked: next });
+                }}
                 aria-pressed={isPicked}
                 className={`w-full rounded-xl border p-4 text-left transition outline-none focus-visible:ring-2 focus-visible:ring-ring ${
                   isPicked

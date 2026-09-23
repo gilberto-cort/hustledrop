@@ -31,9 +31,21 @@ function Detail({ label, text }) {
   );
 }
 
-export default function CustomerMission({ content, accepted, busy, generating, onGenerate, onConfirm }) {
-  const [expanded, setExpanded] = useState(null);
-  const [picked, setPicked] = useState(null);
+export default function CustomerMission({ content, accepted, busy, generating, onGenerate, onConfirm, ui, onUi }) {
+  const [expanded, setExpanded] = useState(typeof (ui && ui.expanded) === 'number' ? ui.expanded : null);
+  const [picked, setPicked] = useState(typeof (ui && ui.picked) === 'number' ? ui.picked : null);
+
+  // AUTOSAVED — every pick survives leaving mid-mission (Build persists it).
+  const toggleExpanded = (i) => {
+    const next = expanded === i ? null : i;
+    setExpanded(next);
+    if (onUi) onUi({ expanded: next });
+  };
+  const togglePicked = (i) => {
+    const next = picked === i ? null : i;
+    setPicked(next);
+    if (onUi) onUi({ picked: next });
+  };
   const [drawer, setDrawer] = useState(false);
 
   // No generated segments yet — the first actionable choice is to scout.
@@ -113,11 +125,11 @@ export default function CustomerMission({ content, accepted, busy, generating, o
               role="button"
               tabIndex={0}
               aria-expanded={isOpen}
-              onClick={() => setExpanded(isOpen ? null : i)}
+              onClick={() => toggleExpanded(i)}
               onKeyDown={(e) => {
                 if (e.key === 'Enter' || e.key === ' ') {
                   e.preventDefault();
-                  setExpanded(isOpen ? null : i);
+                  toggleExpanded(i);
                 }
               }}
               className={`w-full cursor-pointer rounded-xl border p-3.5 text-left transition outline-none focus-visible:ring-2 focus-visible:ring-ring ${
@@ -175,7 +187,7 @@ export default function CustomerMission({ content, accepted, busy, generating, o
                   <button
                     onClick={(e) => {
                       e.stopPropagation();
-                      setPicked(isPicked ? null : i);
+                      togglePicked(i);
                     }}
                     className={`w-full rounded-full border py-2 text-[10px] font-bold tracking-widest transition ${
                       isPicked

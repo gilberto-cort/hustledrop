@@ -8,11 +8,35 @@ import { MISSION_META } from './missionMeta';
 // one, then CUSTOMIZE it: toggle what's included and add one custom touch.
 // Confirmation (SET MY OFFER) persists the choice + customization. Tapping a
 // card never accepts anything by itself.
-export default function OfferMission({ content, accepted, busy, generating, onGenerate, onConfirm }) {
-  const [expanded, setExpanded] = useState(null);
-  const [picked, setPicked] = useState(null);
-  const [kept, setKept] = useState({}); // { offerIndex: Set of included items kept }
-  const [addition, setAddition] = useState('');
+export default function OfferMission({ content, accepted, busy, generating, onGenerate, onConfirm, ui, onUi }) {
+  const [expanded, setExpanded] = useState(typeof (ui && ui.expanded) === 'number' ? ui.expanded : null);
+  const [picked, setPicked] = useState(typeof (ui && ui.picked) === 'number' ? ui.picked : null);
+  const [kept, setKept] = useState(() => {
+    // { offerIndex: Set of included items kept } — restored from saved arrays
+    const saved = (ui && ui.kept) || {};
+    const out = {};
+    for (const k of Object.keys(saved)) out[k] = new Set(saved[k]);
+    return out;
+  });
+  const [addition, setAddition] = useState((ui && ui.addition) || '');
+
+  // AUTOSAVED — picks, customizations and the custom touch survive leaving
+  // mid-mission (Build persists them per business).
+  const toggleExpanded = (i) => {
+    const next = expanded === i ? null : i;
+    setExpanded(next);
+    if (onUi) onUi({ expanded: next });
+  };
+  const togglePicked = (i) => {
+    const next = picked === i ? null : i;
+    setPicked(next);
+    if (onUi) onUi({ picked: next });
+  };
+  const saveKept = (i, keptSet) => {
+    const next = { ...kept, [i]: keptSet };
+    setKept(next);
+    if (onUi) onUi({ kept: Object.fromEntries(Object.entries(next).map(([k, s]) => [k, [...s]])) });
+  };
   const [drawer, setDrawer] = useState(false);
 
   if (!content) {
@@ -97,11 +121,11 @@ export default function OfferMission({ content, accepted, busy, generating, onGe
               role="button"
               tabIndex={0}
               aria-expanded={isOpen}
-              onClick={() => setExpanded(isOpen ? null : i)}
+              onClick={() => toggleExpanded(i)}
               onKeyDown={(e) => {
                 if (e.key === 'Enter' || e.key === ' ') {
                   e.preventDefault();
-                  setExpanded(isOpen ? null : i);
+                  toggleExpanded(i);
                 }
               }}
               className={`w-full cursor-pointer rounded-xl border p-3.5 text-left transition outline-none focus-visible:ring-2 focus-visible:ring-ring ${
@@ -177,7 +201,7 @@ export default function OfferMission({ content, accepted, busy, generating, onGe
                                   const next = new Set(keptFor(i));
                                   if (on) next.delete(k);
                                   else next.add(k);
-                                  setKept((prev) => ({ ...prev, [i]: next }));
+                                  saveKept(i, next);
                                 }}
                                 className="mt-0.5 h-3.5 w-3.5 accent-primary"
                               />
@@ -189,7 +213,10 @@ export default function OfferMission({ content, accepted, busy, generating, onGe
                       <input
                         type="text"
                         value={addition}
-                        onChange={(e) => setAddition(e.target.value)}
+                        onChange={(e) => {
+                          setAddition(e.target.value);
+                          if (onUi) onUi({ addition: e.target.value }, { debounceMs: 400 });
+                        }}
                         placeholder="One extra touch you\u2019d add (optional)"
                         className="mt-2 w-full rounded-lg border border-white/10 bg-white/[0.03] px-3 py-2 text-[11px] text-foreground placeholder:text-muted-foreground/60 outline-none focus:border-primary/40"
                       />
@@ -199,7 +226,7 @@ export default function OfferMission({ content, accepted, busy, generating, onGe
                   <button
                     onClick={(e) => {
                       e.stopPropagation();
-                      setPicked(isPicked ? null : i);
+                      togglePicked(i);
                     }}
                     className={`w-full rounded-full border py-2 text-[10px] font-bold tracking-widest transition ${
                       isPicked

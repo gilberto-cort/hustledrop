@@ -1,0 +1,67 @@
+{
+  "name": "BuilderDraft",
+  "type": "object",
+  "properties": {
+    "user_id": {
+      "type": "string",
+      "description": "Owner user id"
+    },
+    "selected_business_id": {
+      "type": "string",
+      "description": "SelectedBusiness this autosaved Builder progress belongs to (one record per business)"
+    },
+    "last_module": {
+      "type": "string",
+      "description": "Mission key the user was last viewing"
+    },
+    "ui": {
+      "type": "object",
+      "description": "Per-module in-progress answers: unfinished forms, selections, customizations and typed text. Autosaved separately from module content \u2014 never mixed into drafts or accepted GeneratedAsset versions, and never used for scoring or matching.",
+      "additionalProperties": true
+    }
+  },
+  "required": [
+    "selected_business_id"
+  ],
+  "rls": {
+    "read": {
+      "$or": [
+        {
+          "created_by_id": "{{user.id}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    },
+    "create": {
+      "created_by_id": "{{user.id}}"
+    },
+    "update": {
+      "$or": [
+        {
+          "created_by_id": "{{user.id}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    },
+    "delete": {
+      "$or": [
+        {
+          "created_by_id": "{{user.id}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    }
+  }
+}

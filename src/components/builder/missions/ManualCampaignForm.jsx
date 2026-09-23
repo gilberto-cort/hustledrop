@@ -13,11 +13,11 @@ const CHANNELS = [
   { key: 'online', label: 'ONLINE', Icon: Globe },
 ];
 
-export default function ManualCampaignForm({ busy, onSubmit }) {
-  const [channels, setChannels] = useState(new Set(['social']));
-  const [message, setMessage] = useState('');
-  const [action, setAction] = useState('');
-  const [goal, setGoal] = useState('');
+export default function ManualCampaignForm({ busy, onSubmit, ui, onUi }) {
+  const [channels, setChannels] = useState(() => new Set((ui && ui.form_channels) || ['social']));
+  const [message, setMessage] = useState((ui && ui.form_message) || '');
+  const [action, setAction] = useState((ui && ui.form_action) || '');
+  const [goal, setGoal] = useState((ui && ui.form_goal) || '');
 
   const valid = channels.size > 0 && message.trim() && action.trim() && goal.trim();
 
@@ -26,6 +26,7 @@ export default function ManualCampaignForm({ busy, onSubmit }) {
     if (next.has(key)) next.delete(key);
     else next.add(key);
     setChannels(next);
+    if (onUi) onUi({ form_channels: [...next] });
   };
 
   return (
@@ -61,7 +62,10 @@ export default function ManualCampaignForm({ busy, onSubmit }) {
         </span>
         <textarea
           value={message}
-          onChange={(e) => setMessage(e.target.value)}
+          onChange={(e) => {
+            setMessage(e.target.value);
+            if (onUi) onUi({ form_message: e.target.value }, { debounceMs: 400 });
+          }}
           rows={3}
           maxLength={400}
           placeholder="What you'll say to your accepted customer"
@@ -76,7 +80,10 @@ export default function ManualCampaignForm({ busy, onSubmit }) {
         <input
           type="text"
           value={action}
-          onChange={(e) => setAction(e.target.value)}
+          onChange={(e) => {
+            setAction(e.target.value);
+            if (onUi) onUi({ form_action: e.target.value }, { debounceMs: 400 });
+          }}
           maxLength={120}
           placeholder="e.g. Post in 2 local wedding groups"
           className="mt-1.5 w-full rounded-lg border border-white/10 bg-white/[0.03] px-3 py-2 text-xs text-foreground placeholder:text-muted-foreground/60 outline-none focus:border-primary/40"
@@ -90,7 +97,10 @@ export default function ManualCampaignForm({ busy, onSubmit }) {
         <input
           type="text"
           value={goal}
-          onChange={(e) => setGoal(e.target.value)}
+          onChange={(e) => {
+            setGoal(e.target.value);
+            if (onUi) onUi({ form_goal: e.target.value }, { debounceMs: 400 });
+          }}
           maxLength={120}
           placeholder="e.g. 5 replies by Sunday"
           className="mt-1.5 w-full rounded-lg border border-white/10 bg-white/[0.03] px-3 py-2 text-xs text-foreground placeholder:text-muted-foreground/60 outline-none focus:border-primary/40"

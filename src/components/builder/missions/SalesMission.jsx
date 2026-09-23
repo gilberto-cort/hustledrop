@@ -19,10 +19,10 @@ function toneLabel(key) {
   return t ? t.label : 'WARM & FRIENDLY';
 }
 
-export default function SalesMission({ content, accepted, busy, generating, onGenerate, onConfirm }) {
-  const [tone, setTone] = useState('friendly');
-  const [channel, setChannel] = useState(null);
-  const [practiceReply, setPracticeReply] = useState(null);
+export default function SalesMission({ content, accepted, busy, generating, onGenerate, onConfirm, ui, onUi }) {
+  const [tone, setTone] = useState((ui && ui.tone) || 'friendly');
+  const [channel, setChannel] = useState((ui && ui.channel) || null);
+  const [practiceReply, setPracticeReply] = useState(typeof (ui && ui.practice) === 'number' ? ui.practice : null);
   const [drawer, setDrawer] = useState(false);
 
   // No kit yet — the first actionable choice is the pitch tone.
@@ -37,7 +37,10 @@ export default function SalesMission({ content, accepted, busy, generating, onGe
             {TONES.map((t) => (
               <button
                 key={t.key}
-                onClick={() => setTone(t.key)}
+                onClick={() => {
+                  setTone(t.key);
+                  if (onUi) onUi({ tone: t.key });
+                }}
                 aria-pressed={tone === t.key}
                 className={`w-full rounded-xl border p-3.5 text-left transition outline-none focus-visible:ring-2 focus-visible:ring-ring ${
                   tone === t.key
@@ -93,7 +96,10 @@ export default function SalesMission({ content, accepted, busy, generating, onGe
           {channels.map((c) => (
             <button
               key={c.key}
-              onClick={() => setChannel(c.key)}
+              onClick={() => {
+                setChannel(c.key);
+                if (onUi) onUi({ channel: c.key });
+              }}
               aria-pressed={activeChannel === c.key}
               className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 font-mono text-[9px] font-bold tracking-wider transition ${
                 activeChannel === c.key
@@ -128,7 +134,11 @@ export default function SalesMission({ content, accepted, busy, generating, onGe
           {replies.map((r, i) => (
             <div key={r.key}>
               <button
-                onClick={() => setPracticeReply(practiceReply === i ? null : i)}
+                onClick={() => {
+                  const next = practiceReply === i ? null : i;
+                  setPracticeReply(next);
+                  if (onUi) onUi({ practice: next });
+                }}
                 aria-expanded={practiceReply === i}
                 className="flex w-full items-center justify-between rounded-lg border border-white/10 px-3 py-2 text-left transition hover:border-primary/40"
               >

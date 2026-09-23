@@ -9,6 +9,9 @@ import {
   createManualMarketingAsset,
 } from '@/lib/builderService';
 import { hasEntitlement, startCheckout, verifyCheckoutWithRetry } from '@/lib/paymentService';
+import { loadBuilderDraftRecord } from '@/lib/builderDraftService';
+import { useBuilderDraft } from '@/hooks/useBuilderDraft';
+import DraftSaveIndicator from '@/components/builder/DraftSaveIndicator';
 import { useAuth } from '@/lib/AuthContext';
 import PaywallCard from '@/components/builder/PaywallCard';
 import PurchaseSuccessOverlay from '@/components/builder/PurchaseSuccessOverlay';
@@ -59,6 +62,17 @@ export default function Build() {
   const [genError, setGenError] = useState(null);
   const [avatar, setAvatar] = useState(null);
   const [celebrate, setCelebrate] = useState(null); // mission key that just completed
+  const [draftRecord, setDraftRecord] = useState(null);
+
+  // AUTOSAVED IN-PROGRESS STATE — unfinished answers, selections, typed text
+  // and the last mission viewed, one record per business. Module content
+  // drafts and accepted versions are untouched; restore works across
+  // navigation, refresh and sign-out/sign-in.
+  const { getUi, updateUi, clearUi, setLastModule, saveState, retry } = useBuilderDraft({
+    selectedBusinessId: state ? state.selection.id : null,
+    userId: user ? user.id : null,
+    record: draftRecord,
+  });
 
   // Persistent character sprite for the HUD (cosmetic only).
   useEffect(() => {
@@ -102,10 +116,18 @@ export default function Build() {
           }
         }
         setState(s);
+        // Restore the user's saved Builder position: last mission viewed plus
+        // every unfinished answer. Best-effort — never blocks the builder.
+        const draftRec = await loadBuilderDraftRecord(s.selection.id);
+        if (cancelled) return;
+        setDraftRecord(draftRec);
         const firstIncomplete = BUILD_MODULES.find(
           (m) => !(s.assets || []).some((a) => a.module_type === m.key && a.status === 'accepted')
         );
-        setActiveKey((firstIncomplete || BUILD_MODULES[BUILD_MODULES.length - 1]).key);
+        const fallback = (firstIncomplete || BUILD_MODULES[BUILD_MODULES.length - 1]).key;
+        setActiveKey(
+          draftRec && BUILD_MODULES.some((m) => m.key === draftRec.last_module) ? draftRec.last_module : fallback
+        );
         setPhase('ready');
       } catch (e) {
         console.error('[Build] init failed', e);
@@ -116,6 +138,12 @@ export default function Build() {
       cancelled = true;
     };
   }, [loadKey, user]);
+
+  // RESUME POSITION — every mission switch is persisted, so leaving and
+  // returning reopens the exact mission the user was on.
+  useEffect(() => {
+    if (phase === 'ready') setLastModule(activeKey);
+  }, [activeKey, phase, setLastModule]);
 
   // CHECKOUT RETURN — never trust the success URL: the session id is sent to
   // the server, which re-checks with Stripe and fulfills idempotently.
@@ -301,6 +329,9 @@ export default function Build() {
       });
       trackEvent('module_accepted', { module_type: moduleKey });
       setCelebrate(moduleKey);
+      // Accepted content now governs this mission — clear its unfinished
+      // answers so the next visit starts from the locked-in version.
+      clearUi(moduleKey);
     } catch (e) {
       setGenError('Could not save your choice — please try again.');
     } finally {
@@ -308,9 +339,14 @@ export default function Build() {
     }
   };
 
-  const handleEditSave = async (content) => {
+  // Explicit SAVE closes the editor; autosave (draft targets only) persists
+  // in place without closing. A failed autosave keeps the change marked
+  // unsaved in the editor — the next keystroke or SAVE EDITS retries with the
+  // latest version; nothing is ever silently discarded.
+  const handleEditSave = async (content, opts = {}) => {
     const asset = editor;
     if (!asset) return;
+    const close = opts.close !== false;
     try {
       const { asset: saved, created } = await saveEditedContent(
         asset,
@@ -321,10 +357,13 @@ export default function Build() {
         ...prev,
         assets: created ? [saved, ...prev.assets] : prev.assets.map((a) => (a.id === saved.id ? saved : a)),
       }));
-      trackEvent('module_edited', { module_type: asset.module_type });
-      setEditor(null);
+      if (close) {
+        trackEvent('module_edited', { module_type: asset.module_type });
+        setEditor(null);
+      }
     } catch (e) {
-      setGenError('Could not save your edits — please try again.');
+      if (close) setGenError('Could not save your edits — please try again.');
+      else throw e; // autosave — the editor keeps the change marked unsaved
     }
   };
 
@@ -508,6 +547,10 @@ export default function Build() {
         }}
       />
 
+      <div className="flex min-h-[14px] items-center justify-end">
+        <DraftSaveIndicator state={saveState} onRetry={retry} />
+      </div>
+
       {allAccepted && (
         <div className="rounded-2xl border-2 border-primary/40 bg-brand-gradient-soft p-6 text-center">
           <div className="text-xs font-semibold tracking-[0.25em] text-primary">BUSINESS BUILT</div>
@@ -572,6 +615,8 @@ export default function Build() {
             onManualName={handleManualBrandName}
             onManualCampaign={handleManualCampaign}
             manualBusy={manualBusy}
+            ui={getUi(activeKey)}
+            onUi={(patch, opts) => updateUi(activeKey, patch, opts)}
           />
         </MissionShell>
       )}
@@ -614,6 +659,7 @@ export default function Build() {
           open
           title={`${MISSION_META[editor.module_type].num} ${MISSION_META[editor.module_type].title} — REFINE`}
           content={editor.content}
+          autosave={editor.status === 'draft'}
           onClose={() => setEditor(null)}
           onSave={handleEditSave}
         />

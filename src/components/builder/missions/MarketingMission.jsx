@@ -20,11 +20,13 @@ function channelsFrom(content) {
   ].filter(Boolean);
 }
 
-export default function MarketingMission({ content, accepted, busy, generating, onGenerate, onConfirm, onManualCampaign, manualBusy }) {
-  const [selected, setSelected] = useState(null); // Set of channel keys — init below
-  const [expanded, setExpanded] = useState(null);
+export default function MarketingMission({ content, accepted, busy, generating, onGenerate, onConfirm, onManualCampaign, manualBusy, ui, onUi }) {
+  const [selected, setSelected] = useState(() =>
+    ui && Array.isArray(ui.channels) ? new Set(ui.channels) : null
+  ); // Set of channel keys — restored from the autosaved selection
+  const [expanded, setExpanded] = useState((ui && ui.expanded) || null);
   const [drawer, setDrawer] = useState(false);
-  const [manual, setManual] = useState(false);
+  const [manual, setManual] = useState(!!(ui && ui.manual_open));
 
   if (!content) {
     return (
@@ -41,12 +43,16 @@ export default function MarketingMission({ content, accepted, busy, generating, 
         </button>
         <div className="mt-2.5 border-t border-white/10 pt-3">
           <button
-            onClick={() => setManual((m) => !m)}
+            onClick={() => {
+              const next = !manual;
+              setManual(next);
+              if (onUi) onUi({ manual_open: next });
+            }}
             className="text-[10px] font-bold tracking-widest text-muted-foreground transition hover:text-foreground"
           >
             {manual ? 'HIDE MANUAL CAMPAIGN' : 'AI UNAVAILABLE? BUILD MY OWN CAMPAIGN'}
           </button>
-          {manual && <ManualCampaignForm busy={manualBusy} onSubmit={onManualCampaign} />}
+          {manual && <ManualCampaignForm busy={manualBusy} onSubmit={onManualCampaign} ui={ui} onUi={onUi} />}
         </div>
       </div>
     );
@@ -154,6 +160,7 @@ export default function MarketingMission({ content, accepted, busy, generating, 
                     if (on) next.delete(c.key);
                     else next.add(c.key);
                     setSelected(next);
+                    if (onUi) onUi({ channels: [...next] });
                   }}
                   aria-pressed={on}
                   aria-label={`${on ? 'Remove' : 'Use'} ${c.label}`}
@@ -165,7 +172,11 @@ export default function MarketingMission({ content, accepted, busy, generating, 
                 </button>
               </div>
               <button
-                onClick={() => setExpanded(isOpen ? null : c.key)}
+                onClick={() => {
+                  const next = isOpen ? null : c.key;
+                  setExpanded(next);
+                  if (onUi) onUi({ expanded: next });
+                }}
                 aria-expanded={isOpen}
                 className="mt-2 font-mono text-[9px] font-bold tracking-widest text-muted-foreground transition hover:text-foreground"
               >

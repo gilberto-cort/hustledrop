@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription,
 } from '@/components/ui/dialog';
@@ -81,12 +81,55 @@ function FieldEditor({ value, onChange }) {
   return null;
 }
 
-export default function StructuredEditor({ open, title, content, onClose, onSave }) {
+export default function StructuredEditor({ open, title, content, onClose, onSave, autosave = false }) {
   const [draft, setDraft] = useState(null);
+  const draftRef = useRef(null);
+  const dirtyRef = useRef(false);
+  const timerRef = useRef(null);
+  const onSaveRef = useRef(onSave);
+  const autosaveRef = useRef(autosave);
+  onSaveRef.current = onSave;
+  autosaveRef.current = autosave;
 
+  // A content change only resets the local draft when there are no unsaved
+  // local edits — never clobbers typing with the echo of a completed autosave.
   useEffect(() => {
+    if (dirtyRef.current) return;
     setDraft(content ? JSON.parse(JSON.stringify(content)) : null);
   }, [content]);
+
+  // AUTOSAVE (draft targets only): debounced in-place updates, never new
+  // versions. Accepted targets keep the explicit SAVE — editing those forks a
+  // new draft version by design and must not multiply per keystroke.
+  const handleChange = (v) => {
+    setDraft(v);
+    draftRef.current = v;
+    dirtyRef.current = true;
+    if (!autosaveRef.current) return;
+    if (timerRef.current) clearTimeout(timerRef.current);
+    timerRef.current = setTimeout(() => {
+      timerRef.current = null;
+      const snapshot = draftRef.current;
+      Promise.resolve(onSaveRef.current(snapshot, { close: false }))
+        .then(() => {
+          // Landed — unless the user typed past this snapshot, allow resets again.
+          if (draftRef.current === snapshot) dirtyRef.current = false;
+        })
+        .catch(() => {});
+    }, 800);
+  };
+
+  // Leaving mid-edit (navigate/refresh) still saves the pending keystrokes.
+  useEffect(
+    () => () => {
+      if (timerRef.current) {
+        clearTimeout(timerRef.current);
+        timerRef.current = null;
+        onSaveRef.current(draftRef.current, { close: false });
+      }
+    },
+    []
+  );
 
   return (
     <Dialog open={open} onOpenChange={(o) => !o && onClose()}>
@@ -100,13 +143,16 @@ export default function StructuredEditor({ open, title, content, onClose, onSave
         </DialogHeader>
         {draft !== null && (
           <div className="space-y-3">
-            <FieldEditor value={draft} onChange={setDraft} />
+            <FieldEditor value={draft} onChange={handleChange} />
             <div className="flex justify-end gap-2 pt-2">
               <Button variant="outline" onClick={onClose} className="rounded-full text-xs font-semibold">
                 CANCEL
               </Button>
               <Button
-                onClick={() => onSave(draft)}
+                onClick={() => {
+                  dirtyRef.current = false;
+                  onSave(draft);
+                }}
                 className="rounded-full bg-brand-gradient text-xs font-semibold text-white"
               >
                 SAVE EDITS

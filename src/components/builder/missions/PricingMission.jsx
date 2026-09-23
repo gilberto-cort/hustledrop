@@ -71,9 +71,9 @@ function AssumptionInput({ label, value, min, max, step, onChange, format }) {
   );
 }
 
-export default function PricingMission({ content, accepted, model, busy, generating, onGenerate, onConfirm }) {
-  const [values, setValues] = useState(() => defaultsFrom(content));
-  const customized = useRef(false);
+export default function PricingMission({ content, accepted, model, busy, generating, onGenerate, onConfirm, ui, onUi }) {
+  const [values, setValues] = useState(() => (ui && ui.values) || defaultsFrom(content));
+  const customized = useRef(!!(ui && ui.values));
   const [drawer, setDrawer] = useState(false);
 
   // A new hypothesis (TRY ANOTHER) updates the starting numbers ONLY while the
@@ -103,7 +103,10 @@ export default function PricingMission({ content, accepted, model, busy, generat
 
   const edit = (key, v) => {
     customized.current = true;
-    setValues((prev) => ({ ...prev, [key]: v }));
+    const next = { ...values, [key]: v };
+    setValues(next);
+    // AUTOSAVED — calculator assumptions survive leaving mid-mission.
+    if (onUi) onUi({ values: next }, { debounceMs: 500 });
   };
 
   if (accepted && typeof content.chosen_price === 'number') {
@@ -171,7 +174,9 @@ export default function PricingMission({ content, accepted, model, busy, generat
           <button
             onClick={() => {
               customized.current = false;
-              setValues(defaultsFrom(content));
+              const next = defaultsFrom(content);
+              setValues(next);
+              if (onUi) onUi({ values: next });
             }}
             className="inline-flex shrink-0 items-center gap-1 rounded-full border border-white/15 px-2.5 py-1 font-mono text-[8px] font-bold tracking-widest text-muted-foreground transition hover:text-foreground"
           >
