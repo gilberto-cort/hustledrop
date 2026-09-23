@@ -10,6 +10,9 @@ import {
   addProspect, advanceProspect, oneTapAction, quickAddContact, undoLastAction,
   updateProspectDetails, buildLoadoutItems,
 } from '@/lib/launchService';
+import { loadDailyQuestState, completePrepDaily } from '@/lib/dailyQuestService';
+import DailyQuestCard from '@/components/daily/DailyQuestCard';
+import DailyVictoryOverlay from '@/components/daily/DailyVictoryOverlay';
 import SpriteDisplay from '@/components/dna/SpriteDisplay';
 import LaunchHUD from '@/components/launch/LaunchHUD';
 import QuestMap from '@/components/launch/QuestMap';
@@ -36,6 +39,10 @@ export default function Launch() {
   const [xpPop, setXpPop] = useState(null);
   const [victory, setVictory] = useState(null); // { mission, next }
   const [lastAction, setLastAction] = useState(null);
+  const [daily, setDaily] = useState(null);
+  const [dailyError, setDailyError] = useState(false);
+  const [dailyVictory, setDailyVictory] = useState(null);
+  const dailyPrev = useRef(null);
   const missionRef = useRef(null);
 
   useEffect(() => {
@@ -82,6 +89,7 @@ export default function Launch() {
         }
         setGame(data);
         setPhase('ready');
+        refreshDaily(data.quest, data.prospects);
       } catch (e) {
         if (!cancelled) setPhase('error');
       }
@@ -93,6 +101,28 @@ export default function Launch() {
 
   const stats = useMemo(() => (game ? computeLaunchStats(game.prospects, game.missions) : null), [game]);
 
+  // DAILY QUEST — assignment and completion persist as DailyQuest records, so
+  // the same quest shows on the dashboard, Launch and Grow. A completion
+  // transition fires the small victory animation.
+  const refreshDaily = async (questData, prospects) => {
+    try {
+      const ds = await loadDailyQuestState(questData, prospects);
+      const prev = dailyPrev.current;
+      if (prev && !prev.completed && ds.completed) {
+        trackEvent('daily_quest_completed');
+        setDailyVictory(ds.bossDefeated ? { kind: 'boss', streak: ds.streak } : { kind: 'daily', streak: ds.streak });
+      } else if (prev && !prev.bossDefeated && ds.bossDefeated) {
+        trackEvent('weekly_boss_defeated');
+        setDailyVictory({ kind: 'boss', streak: ds.streak });
+      }
+      dailyPrev.current = ds;
+      setDaily(ds);
+      setDailyError(false);
+    } catch (e) {
+      setDailyError(true);
+    }
+  };
+
   const run = async (fn) => {
     if (busy) return false;
     setBusy(true);
@@ -100,6 +130,7 @@ export default function Launch() {
     try {
       const next = await fn();
       setGame(next);
+      await refreshDaily(next.quest, next.prospects);
       return true;
     } catch (e) {
       setError('Something went wrong — your progress is safe. Try again.');
@@ -134,8 +165,8 @@ export default function Launch() {
     setLastAction(action || null);
   };
 
-  const handleEnter = () =>
-    run(async () => {
+  const handleEnter = async () => {
+    const ok = await run(async () => {
       const data = await startLaunchQuest({
         userId: build.userId,
         selectedBusinessId: build.selection.id,
@@ -143,6 +174,8 @@ export default function Launch() {
       trackEvent('launch_entered');
       return data;
     });
+    if (ok) setPhase('ready');
+  };
 
   // ONE-TAP PROGRESS — the big button on the active quest.
   const handleOneTap = (prospect) =>
@@ -216,6 +249,19 @@ export default function Launch() {
 
   const handleUpdateDetails = (prospect, details) =>
     run(() => updateProspectDetails(game.quest, prospect, details));
+
+  // Daily quest action — always the EXISTING underlying record system:
+  // quick-add a real contact, advance a real prospect, or self-attest a prep
+  // mission. XP settles inside those services; undo reverses it.
+  const handleDailyAction = (a) => {
+    if (a.selfAttest)
+      return run(async () => {
+        await completePrepDaily(game.quest);
+        return game; // prep records no pipeline change
+      });
+    if (a.create) return handleQuickAdd('New contact', 'prospect');
+    return handleAdvance(a.prospect, a.nextStatus);
+  };
 
   const handleOpenLoadout = () => {
     setView('loadout');
@@ -340,6 +386,17 @@ export default function Launch() {
             achievements={game.achievements}
           />
 
+          <DailyQuestCard
+            daily={daily}
+            loading={daily === null}
+            error={dailyError}
+            prospects={game.prospects}
+            accepted={build.accepted}
+            busy={busy}
+            onAction={handleDailyAction}
+            onRetry={() => refreshDaily(game.quest, game.prospects)}
+          />
+
           {Array.isArray(build.model.compliance_flags) && build.model.compliance_flags.length > 0 && (
             <div className="rounded-xl border border-yellow-500/20 bg-yellow-500/5 p-3 text-[11px] leading-relaxed text-foreground/80">
               <span className="font-bold text-yellow-400">BEFORE OPERATING —</span> verify what applies where you
@@ -441,6 +498,8 @@ export default function Launch() {
       </AnimatePresence>
 
       {celebrate && <LevelUpOverlay onClose={() => setCelebrate(false)} />}
+
+      <DailyVictoryOverlay victory={dailyVictory} avatar={build.avatar} onClose={() => setDailyVictory(null)} />
     </div>
   );
 }

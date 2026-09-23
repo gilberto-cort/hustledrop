@@ -1,6 +1,6 @@
 import { base44 } from '@/api/base44Client';
 import { refreshQuest } from '@/lib/launchService';
-import { settleDailyQuest } from '@/lib/dailyQuestService';
+import { settleDailyQuest, localDateStr } from '@/lib/dailyQuestService';
 
 // ============================================================
 // GROW MODE — "THE ROAD TO 5". The next world after Launch: real
@@ -195,12 +195,12 @@ export async function recalcGrow(quest, { actionToday = false } = {}) {
   if (actionToday) {
     let streak = quest.streak || 0;
     const lastAction = quest.last_action_date || null;
-    if (lastAction !== todayStr()) {
-      const yesterday = new Date(Date.now() - 86400000).toISOString().slice(0, 10);
+    if (lastAction !== localDateStr()) {
+      const yesterday = localDateStr(new Date(Date.now() - 86400000));
       streak = lastAction === yesterday ? streak + 1 : 1;
       await base44.entities.LaunchQuest.update(quest.id, {
         streak,
-        last_action_date: todayStr(),
+        last_action_date: localDateStr(),
       });
     }
   }

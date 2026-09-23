@@ -5,6 +5,10 @@ import { getNextMove } from '@/lib/nextMove';
 import { resolveProgression, WELCOME } from '@/lib/progression';
 import { hasEntitlement } from '@/lib/paymentService';
 import { DNA_TYPES } from '@/lib/dnaDisplay';
+import DailyQuestCard from '@/components/daily/DailyQuestCard';
+import DailyVictoryOverlay from '@/components/daily/DailyVictoryOverlay';
+import { loadDailyQuestState, completePrepDaily } from '@/lib/dailyQuestService';
+import { advanceProspect, quickAddContact } from '@/lib/launchService';
 import DnaDashboardCard from '@/components/dna/DnaDashboardCard';
 import JourneyProgress from '@/components/dashboard/JourneyProgress';
 import NextMoveCard from '@/components/dashboard/NextMoveCard';
@@ -26,6 +30,8 @@ export default function Dashboard() {
   const [data, setData] = useState(null); // null = loading
   const [failed, setFailed] = useState(false);
   const [loadKey, setLoadKey] = useState(0);
+  const [dailyBusy, setDailyBusy] = useState(false);
+  const [victory, setVictory] = useState(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -69,6 +75,22 @@ export default function Dashboard() {
         }
         if (cancelled) return;
 
+        // Daily quest (Launch/Grow stages only) — the SAME persisted
+        // assignment the Launch and Grow pages show.
+        const quest = (quests || [])[0] || null;
+        let daily = null;
+        let dailyFailed = false;
+        let dailyProspects = [];
+        if (quest) {
+          try {
+            dailyProspects =
+              (await base44.entities.Prospect.filter({ launch_quest_id: quest.id }, '-created_date', 200)) || [];
+            daily = await loadDailyQuestState(quest, dailyProspects);
+          } catch (e) {
+            dailyFailed = true;
+          }
+        }
+
         setData({
           profile: (profiles || [])[0] || null,
           dna: (dnaProfiles || [])[0] || null,
@@ -79,6 +101,9 @@ export default function Dashboard() {
           entitled,
           acceptedModules,
           quest: (quests || [])[0] || null,
+          daily,
+          dailyFailed,
+          dailyProspects,
           customers: (wins || []).length,
           achievements: (achievements || []).length,
         });
@@ -94,6 +119,32 @@ export default function Dashboard() {
   // ONE resolver — Dashboard, Journey, Next Move and level/XP all read this.
   const progression = useMemo(() => (data ? resolveProgression(data) : null), [data]);
   const move = useMemo(() => (progression ? getNextMove(progression) : null), [progression]);
+
+  // Daily quest action from the dashboard — uses the same underlying record
+  // system as Launch/Grow (quick-add, prospect advance, or prep self-attest),
+  // then reloads so every stat stays consistent.
+  const handleDailyAction = async (a) => {
+    if (!data?.quest || dailyBusy) return;
+    setDailyBusy(true);
+    try {
+      if (a.selfAttest) await completePrepDaily(data.quest);
+      else if (a.create) await quickAddContact(data.quest, 'New contact', 'prospect');
+      else await advanceProspect(data.quest, a.prospect, a.nextStatus);
+      const prospects =
+        (await base44.entities.Prospect.filter({ launch_quest_id: data.quest.id }, '-created_date', 200)) || [];
+      const ds = await loadDailyQuestState(data.quest, prospects);
+      if (data.daily && !data.daily.completed && ds.completed) {
+        setVictory(ds.bossDefeated ? { kind: 'boss', streak: ds.streak } : { kind: 'daily', streak: ds.streak });
+      } else if (data.daily && !data.daily.bossDefeated && ds.bossDefeated) {
+        setVictory({ kind: 'boss', streak: ds.streak });
+      }
+      setLoadKey((k) => k + 1); // full refresh — customers, XP and daily all re-derive
+    } catch (e) {
+      setLoadKey((k) => k + 1); // even on failure, re-derive from records
+    } finally {
+      setDailyBusy(false);
+    }
+  };
 
   if (failed) {
     return (
@@ -139,6 +190,19 @@ export default function Dashboard() {
         <p className="mt-1 text-sm text-muted-foreground">{welcome.body}</p>
       </div>
 
+      {data.quest && (
+        <DailyQuestCard
+          daily={data.daily}
+          loading={!data.daily && !data.dailyFailed}
+          error={data.dailyFailed}
+          prospects={data.dailyProspects}
+          accepted={null}
+          busy={dailyBusy}
+          onAction={handleDailyAction}
+          onRetry={() => setLoadKey((k) => k + 1)}
+        />
+      )}
+
       <NextMoveCard
         businessName={businessName}
         modelFamily={data.model ? data.model.family : null}
@@ -163,6 +227,8 @@ export default function Dashboard() {
       <DnaDashboardCard dna={data.dna} loading={false} />
 
       <JourneyProgress journey={progression.journey} stage={progression.stage} />
+
+      <DailyVictoryOverlay victory={victory} onClose={() => setVictory(null)} />
     </div>
   );
 }

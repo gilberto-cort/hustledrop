@@ -10,9 +10,9 @@ import {
 } from '@/lib/launchService';
 import { loadDailyQuestState, completePrepDaily } from '@/lib/dailyQuestService';
 import {
-  initGrow, loadGrowData, computeGrowStats, deriveDailyQuest, generateGrowContent,
+  initGrow, loadGrowData, computeGrowStats, generateGrowContent,
   markReviewSent, logReviewFeedback, markReferralReady, saveRepeatSource, completeRepeatWin,
-  equipSystem, saveSystemSteps, completeDailyQuest, completeSideQuest, logGrowCustomer,
+  equipSystem, saveSystemSteps, completeSideQuest, logGrowCustomer,
   GROW_XP_GOAL, GROW_EQUIPPED,
 } from '@/lib/growService';
 import AskHustleDrop from '@/components/builder/AskHustleDrop';
