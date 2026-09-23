@@ -1,4 +1,5 @@
 import { base44 } from '@/api/base44Client';
+import { settleDailyQuest, undoDailySettle } from '@/lib/dailyQuestService';
 
 // ============================================================
 // LAUNCH MODE — a deterministic game layer over REAL actions.
@@ -505,7 +506,9 @@ export async function addProspect(quest, { name_or_alias, channel, notes }) {
     notes: notes || '',
   });
   const next = await recalc(quest, { actionToday: true });
-  return { ...next, lastAdded: created };
+  // A new real contact is today's "find a prospect" daily action.
+  const settled = await settleDailyQuest(quest, { kind: 'prospect_added', prospect_id: created.id });
+  return { ...next, lastAdded: created, dailySettled: settled };
 }
 
 // Quick create — one-tap progress records the user's real action first;
@@ -523,7 +526,14 @@ async function createProspect(quest, { name_or_alias, status }) {
 export async function quickAddContact(quest, name, status = 'prospect') {
   const created = await createProspect(quest, { name_or_alias: name, status });
   const next = await recalc(quest, { actionToday: true });
-  return { ...next, lastAdded: created };
+  // Quick records carry a real action too — settle the daily quest with
+  // the action the quick contact represents (found vs. reached out).
+  const settled = await settleDailyQuest(quest, {
+    kind: status === 'prospect' ? 'prospect_added' : 'advance',
+    to: status,
+    prospect_id: created.id,
+  });
+  return { ...next, lastAdded: created, dailySettled: settled };
 }
 
 // ONE-TAP PROGRESS — advances the selected contact, or records the action on
@@ -538,7 +548,12 @@ export async function oneTapAction(quest, missionType, prospect) {
     status: nextStatus,
   });
   const next = await recalc(quest, { actionToday: true });
-  return { ...next, lastAdded: created };
+  const settled = await settleDailyQuest(quest, {
+    kind: 'advance',
+    to: nextStatus,
+    prospect_id: created.id,
+  });
+  return { ...next, lastAdded: created, dailySettled: settled };
 }
 
 // CORRECTION — reverses the most recent recorded action. XP, quest status,
@@ -563,6 +578,12 @@ export async function undoLastAction(quest, lastAction) {
       if (convs && convs[0]) await base44.entities.CustomerConversation.delete(convs[0].id);
     }
   }
+  // If this same action completed today's daily quest, its reward is
+  // reversed with it — never a double award, never a stuck reward.
+  await undoDailySettle(quest, {
+    prospect_id: lastAction.prospectId,
+    kind: lastAction.type === 'add' ? 'prospect_added' : 'advance',
+  });
   return recalc(quest, {});
 }
 
@@ -605,5 +626,13 @@ export async function advanceProspect(quest, prospect, nextStatus, extra = {}) {
       notes: extra.notes || '',
     });
   }
-  return recalc(quest, { actionToday: true });
+  const next = await recalc(quest, { actionToday: true });
+  // Real pipeline action — settles today's daily quest when it qualifies.
+  const settled = await settleDailyQuest(quest, {
+    kind: 'advance',
+    from: prospect.status,
+    to: nextStatus,
+    prospect_id: prospect.id,
+  });
+  return { ...next, dailySettled: settled };
 }

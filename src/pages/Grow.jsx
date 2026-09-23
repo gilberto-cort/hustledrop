@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Lock } from 'lucide-react';
 import { base44 } from '@/api/base44Client';
@@ -6,8 +6,9 @@ import { trackEvent } from '@/lib/analytics';
 import { AnimatePresence, motion } from 'framer-motion';
 import { loadBuilderState, acceptedByModule } from '@/lib/builderService';
 import {
-  loadLaunchData, computeLaunchStats, buildLoadoutItems, addProspect, advanceProspect,
+  loadLaunchData, computeLaunchStats, buildLoadoutItems, addProspect, advanceProspect, quickAddContact,
 } from '@/lib/launchService';
+import { loadDailyQuestState, completePrepDaily } from '@/lib/dailyQuestService';
 import {
   initGrow, loadGrowData, computeGrowStats, deriveDailyQuest, generateGrowContent,
   markReviewSent, logReviewFeedback, markReferralReady, saveRepeatSource, completeRepeatWin,
@@ -20,7 +21,8 @@ import GrowWorldMap from '@/components/grow/GrowWorldMap';
 import GrowMissionPanel from '@/components/grow/GrowMissionPanel';
 import GrowPipeline from '@/components/grow/GrowPipeline';
 import CustomerForm from '@/components/grow/CustomerForm';
-import DailyQuestCard from '@/components/grow/DailyQuestCard';
+import DailyQuestCard from '@/components/daily/DailyQuestCard';
+import DailyVictoryOverlay from '@/components/daily/DailyVictoryOverlay';
 import SideQuests from '@/components/grow/SideQuests';
 import MilestoneOverlay from '@/components/grow/MilestoneOverlay';
 import ProspectForm from '@/components/launch/ProspectForm';
@@ -31,8 +33,6 @@ const GROW_EXAMPLES = [
   'How do I get another customer?',
   'What worked with my first customer?',
 ];
-
-const todayStr = () => new Date().toISOString().slice(0, 10);
 
 // GROW MODE v1 — "THE ROAD TO 5". The next world after Launch, played over
 // the SAME persistent records: LaunchQuest, Prospect pipeline, CustomerWin.
@@ -49,6 +49,10 @@ export default function Grow() {
   const [prospectFormOpen, setProspectFormOpen] = useState(false);
   const [milestone, setMilestone] = useState(null);
   const [xpPop, setXpPop] = useState(null);
+  const [daily, setDaily] = useState(null);
+  const [dailyError, setDailyError] = useState(false);
+  const [victory, setVictory] = useState(null);
+  const dailyPrev = useRef(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -85,6 +89,7 @@ export default function Grow() {
         setLaunch(launchData);
         setGrow(g);
         setPhase('ready');
+        refreshDaily(launchData.quest, launchData.prospects);
 
         // Show a reached-but-unseen milestone celebration once.
         const stats = computeGrowStats(g.missions, g.wins, g.growState);
@@ -112,10 +117,27 @@ export default function Grow() {
     [grow]
   );
   const totalXp = (launchStats?.xp || 0) + (growStats?.xp || 0);
-  const dailyQuest = useMemo(
-    () => (launchStats && growStats ? deriveDailyQuest({ launchStats, growStats, wins: grow.wins }) : null),
-    [launchStats, growStats, grow]
-  );
+  // DAILY QUEST — assignment and completion persist as DailyQuest records, so
+  // the same quest shows on the dashboard, Launch and Grow. A completion
+  // transition fires the small victory animation.
+  const refreshDaily = async (questData, prospects) => {
+    try {
+      const ds = await loadDailyQuestState(questData, prospects);
+      const prev = dailyPrev.current;
+      if (prev && !prev.completed && ds.completed) {
+        trackEvent('daily_quest_completed');
+        setVictory(ds.bossDefeated ? { kind: 'boss', streak: ds.streak } : { kind: 'daily', streak: ds.streak });
+      } else if (prev && !prev.bossDefeated && ds.bossDefeated) {
+        trackEvent('weekly_boss_defeated');
+        setVictory({ kind: 'boss', streak: ds.streak });
+      }
+      dailyPrev.current = ds;
+      setDaily(ds);
+      setDailyError(false);
+    } catch (e) {
+      setDailyError(true);
+    }
+  };
 
   const runAction = async (serviceCalls) => {
     if (busy) return;
@@ -127,6 +149,7 @@ export default function Grow() {
       const [ld, g] = await Promise.all([loadLaunchData(), loadGrowData(launch.quest)]);
       setLaunch(ld);
       setGrow(g);
+      await refreshDaily(ld.quest, ld.prospects);
       const after = computeGrowStats(g.missions, g.wins, g.growState);
       if (before && after.xp > before.xp) {
         setXpPop({ id: Date.now(), amount: after.xp - before.xp });
@@ -155,6 +178,18 @@ export default function Grow() {
   };
 
   const missionRecord = (type) => grow?.missions?.find((m) => m.mission_type === type) || null;
+
+  // Daily quest action — always the EXISTING underlying record system:
+  // quick-add a real contact, advance a real prospect, or self-attest a prep
+  // mission. XP settles inside those services; undo reverses it.
+  const handleDailyAction = (a) => {
+    if (a.selfAttest) return runAction(() => completePrepDaily(launch.quest));
+    if (a.create) return runAction(() => quickAddContact(launch.quest, 'New contact', 'prospect'));
+    return runAction(() => {
+      if (a.nextStatus === 'customer') trackEvent('customer_logged');
+      return advanceProspect(launch.quest, a.prospect, a.nextStatus);
+    });
+  };
 
   const closeMilestone = () => {
     if (milestone && launch) localStorage.setItem(`hd_milestone_${launch.quest.id}_${milestone}`, '1');
@@ -226,7 +261,6 @@ export default function Grow() {
     (GROW_EQUIPPED[type] || []).map((k) => loadoutItems.find((i) => i.key === k)).filter(Boolean);
 
   const openDef = openMission ? growStats.missionStates.find((m) => m.type === openMission) : null;
-  const dailyDoneToday = grow?.growState?.daily_quest_completed_date === todayStr();
   const doneSides = grow?.growState?.completed_side_quests || [];
   const activeMilestoneDef = openDef?.milestone
     ? { onRecordCustomer: () => {
@@ -293,17 +327,16 @@ export default function Grow() {
         achievements={grow.achievements}
       />
 
-      {dailyQuest && (
-        <DailyQuestCard
-          quest={dailyQuest}
-          completedToday={dailyDoneToday}
-          busy={busy}
-          onComplete={() => runAction(() => {
-            trackEvent('daily_quest_completed');
-            return completeDailyQuest(launch.quest, grow.growState);
-          })}
-        />
-      )}
+      <DailyQuestCard
+        daily={daily}
+        loading={daily === null}
+        error={dailyError}
+        prospects={launch.prospects}
+        accepted={build.accepted}
+        busy={busy}
+        onAction={handleDailyAction}
+        onRetry={() => refreshDaily(launch.quest, launch.prospects)}
+      />
 
       <GrowWorldMap stats={growStats} avatar={build.avatar} onOpenMission={setOpenMission} />
 
@@ -390,6 +423,8 @@ export default function Grow() {
       {milestone && (
         <MilestoneOverlay type={milestone} summary={milestoneSummary} onClose={closeMilestone} />
       )}
+
+      <DailyVictoryOverlay victory={victory} avatar={build.avatar} onClose={() => setVictory(null)} />
 
       <AnimatePresence>
         {xpPop && (

@@ -1,0 +1,108 @@
+{
+  "name": "DailyQuest",
+  "type": "object",
+  "properties": {
+    "user_id": {
+      "type": "string",
+      "description": "Owner user id"
+    },
+    "launch_quest_id": {
+      "type": "string",
+      "description": "LaunchQuest this daily/boss record belongs to (same persistent quest as Launch and Grow)"
+    },
+    "selected_business_id": {
+      "type": "string",
+      "description": "SelectedBusiness the quest was assigned for"
+    },
+    "record_type": {
+      "type": "string",
+      "enum": [
+        "daily",
+        "boss"
+      ],
+      "default": "daily",
+      "description": "daily = one-per-local-day quest row; boss = weekly objective row (one per week)"
+    },
+    "date": {
+      "type": "string",
+      "description": "User's LOCAL calendar day (YYYY-MM-DD) this record belongs to \u2014 the dedupe key for daily rows"
+    },
+    "week_key": {
+      "type": "string",
+      "description": "Monday (YYYY-MM-DD) of the user's local week \u2014 scopes the weekly boss objective"
+    },
+    "mission_key": {
+      "type": "string",
+      "description": "Assigned daily mission key (advance_lead, follow_up, conversation, outreach, find_prospect, prep) or weekly_boss for boss rows"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "active",
+        "completed"
+      ],
+      "default": "active",
+      "description": "active = assigned, not yet done; completed = qualifying real action recorded (reopened on undo)"
+    },
+    "completed_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "xp_awarded": {
+      "type": "number",
+      "default": 0,
+      "description": "XP granted through the existing GrowState daily-quest ledger when completed (25 daily / 50 boss). 0 while active. Has no monetary value."
+    },
+    "completed_by": {
+      "type": "object",
+      "additionalProperties": true,
+      "description": "Bookkeeping only: the real action that completed this record ({kind, prospect_id}) \u2014 used to reverse the reward on undo. Never used for scoring or matching."
+    }
+  },
+  "required": [
+    "user_id",
+    "launch_quest_id",
+    "mission_key"
+  ],
+  "rls": {
+    "read": {
+      "$or": [
+        {
+          "created_by_id": "{{user.id}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    },
+    "create": {
+      "created_by_id": "{{user.id}}"
+    },
+    "update": {
+      "$or": [
+        {
+          "created_by_id": "{{user.id}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    },
+    "delete": {
+      "$or": [
+        {
+          "created_by_id": "{{user.id}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    }
+  }
+}

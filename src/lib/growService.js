@@ -1,5 +1,6 @@
 import { base44 } from '@/api/base44Client';
 import { refreshQuest } from '@/lib/launchService';
+import { settleDailyQuest } from '@/lib/dailyQuestService';
 
 // ============================================================
 // GROW MODE — "THE ROAD TO 5". The next world after Launch: real
@@ -130,31 +131,6 @@ export function computeGrowStats(missions, wins, growState) {
   return { customers, missionStates, activeIndex, xp, level };
 }
 
-// One optional Daily Quest, derived from the user's CURRENT bottleneck —
-// never a meaningless engagement task.
-export function deriveDailyQuest({ launchStats, growStats, wins }) {
-  const review = growStats.missionStates.find((m) => m.type === 'review');
-  if (review && !review.completed) {
-    return { key: 'review_feedback', title: 'Ask your customer for honest feedback', xp: 25 };
-  }
-  if (launchStats.leadCount > 0) {
-    return { key: 'follow_lead', title: 'Follow up with your strongest lead', xp: 25 };
-  }
-  if (launchStats.conversationCount < 3) {
-    return { key: 'warm_prospects', title: 'Follow up with 2 warm prospects', xp: 25 };
-  }
-  if (launchStats.contactedCount < launchStats.prospectCount) {
-    return { key: 'send_messages', title: 'Send 3 personalized messages', xp: 25 };
-  }
-  if (launchStats.prospectCount < 10) {
-    return { key: 'find_prospects', title: 'Find 3 qualified prospects', xp: 25 };
-  }
-  if ((wins || []).length === 0 || (wins || []).some((w) => w.repeat_customer !== true)) {
-    return { key: 'referral_ask', title: 'Ask a happy customer if they know someone who could benefit', xp: 25 };
-  }
-  return { key: 'send_messages', title: 'Send 3 personalized messages', xp: 25 };
-}
-
 export function growAchievementTypes(growStats) {
   const t = [];
   const ms = growStats.missionStates;
@@ -166,8 +142,6 @@ export function growAchievementTypes(growStats) {
 }
 
 // ---------- SDK operations (all progress persists server-side) ----------
-
-const todayStr = () => new Date().toISOString().slice(0, 10);
 
 export async function loadGrowData(quest) {
   const [missions, wins, states, achievements] = await Promise.all([
@@ -281,15 +255,18 @@ export async function generateGrowContent(missionType, options = {}) {
   return res.data;
 }
 
-async function updateMission(quest, mission, patch, { actionToday = false } = {}) {
+async function updateMission(quest, mission, patch, { actionToday = false, settleAction = null } = {}) {
   await base44.entities.GrowMission.update(mission.id, patch);
-  return recalcGrow(quest, { actionToday });
+  const res = await recalcGrow(quest, { actionToday });
+  if (settleAction) await settleDailyQuest(quest, settleAction);
+  return res;
 }
 
 export function markReviewSent(quest, mission) {
+  // A real follow-up with an existing customer — qualifies today's daily quest.
   return updateMission(quest, mission, {
     inputs: { ...(mission.inputs || {}), sent: true, sent_at: new Date().toISOString() },
-  }, { actionToday: true });
+  }, { actionToday: true, settleAction: { kind: 'review_sent' } });
 }
 
 export function logReviewFeedback(quest, mission, feedback) {
@@ -339,17 +316,6 @@ export function saveSystemSteps(quest, mission, stepsText) {
   }, { actionToday: true });
 }
 
-export async function completeDailyQuest(quest, growState) {
-  if (!growState || growState.daily_quest_completed_date === todayStr()) {
-    return { unchanged: true };
-  }
-  await base44.entities.GrowState.update(growState.id, {
-    daily_quest_completed_date: todayStr(),
-    daily_quest_completions: Number(growState.daily_quest_completions || 0) + 1,
-  });
-  return recalcGrow(quest, { actionToday: true });
-}
-
 export async function completeSideQuest(quest, growState, key) {
   const done = (growState?.completed_side_quests || []);
   if (done.includes(key)) return { unchanged: true };
@@ -385,5 +351,6 @@ export async function logGrowCustomer(quest, data) {
     notes: data.notes || '',
   });
   await refreshQuest(quest, { actionToday: true });
+  await settleDailyQuest(quest, { kind: 'customer_recorded', prospect_id: data.prospect_id || null });
   return recalcGrow(quest);
 }
