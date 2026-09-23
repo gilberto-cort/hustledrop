@@ -1,11 +1,22 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { motion, useReducedMotion } from 'framer-motion';
+import confetti from 'canvas-confetti';
 import { Trophy, ArrowRight, Sprout } from 'lucide-react';
 
 // QUEST COMPLETE — a short celebration, then straight back to the next
 // real-world move. Respects reduced motion.
 export default function MissionVictory({ mission, next, onClose }) {
   const reduce = useReducedMotion();
+
+  // Short celebratory burst — never fired under reduced motion.
+  useEffect(() => {
+    if (reduce) return undefined;
+    const timer = setTimeout(() => {
+      confetti({ particleCount: 90, spread: 70, origin: { y: 0.4 }, colors: ['#a855f7', '#ec4899', '#f97316'] });
+    }, 200);
+    return () => clearTimeout(timer);
+  }, [reduce]);
+
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/95 p-4">
       <motion.div
@@ -14,7 +25,9 @@ export default function MissionVictory({ mission, next, onClose }) {
         transition={{ duration: 0.25 }}
         className="w-full max-w-sm rounded-2xl border-2 border-primary/40 bg-brand-gradient-soft p-6 text-center"
       >
-        <Trophy className="mx-auto h-6 w-6 text-primary" />
+        <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl border-2 border-primary/50 bg-brand-gradient-soft glow-primary">
+          <Trophy className="h-7 w-7 text-primary" />
+        </div>
         <div className="mt-2 font-mono text-[10px] font-bold tracking-[0.3em] text-primary">QUEST COMPLETE</div>
         <h2 className="mt-2 text-xl font-bold tracking-tight text-gradient">{mission.title}</h2>
         {mission.xp > 0 && (

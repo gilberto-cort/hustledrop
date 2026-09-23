@@ -1,11 +1,14 @@
 import React, { useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import confetti from 'canvas-confetti';
+import { useReducedMotion } from 'framer-motion';
 
 // FIRST CUSTOMER celebration: quest complete, +1000 XP, LEVEL UP to
 // LV. 4 ENTREPRENEUR, Grow unlocked.
 export default function LevelUpOverlay({ onClose }) {
+  const reduce = useReducedMotion();
   useEffect(() => {
+    if (reduce) return undefined; // no confetti under reduced motion
     const timer = setTimeout(() => {
       confetti({
         particleCount: 140,

@@ -9,6 +9,17 @@ import { MISSION_META } from './missionMeta';
 // kit (only the ones the generator judged relevant). The user toggles which
 // channels they'll actually use and expands previews; LAUNCH MY CAMPAIGN
 // persists the selection. Toggling a card never accepts the mission.
+// Per-channel accent identity — one distinct hue from the purple→pink→orange
+// family per kit asset, as literal classes (purge-safe).
+const CHANNEL_ACCENTS = {
+  social: { badge: 'border-purple-400/60 bg-purple-500/20 text-purple-300', glow: 'shadow-[0_0_18px_rgba(168,85,247,0.4)]' },
+  shortform: { badge: 'border-pink-400/60 bg-pink-500/20 text-pink-300', glow: 'shadow-[0_0_18px_rgba(236,72,153,0.4)]' },
+  promo: { badge: 'border-orange-400/60 bg-orange-500/20 text-orange-300', glow: 'shadow-[0_0_18px_rgba(249,115,22,0.4)]' },
+  referral: { badge: 'border-violet-400/60 bg-violet-500/20 text-violet-300', glow: 'shadow-[0_0_18px_rgba(139,92,246,0.4)]' },
+  local: { badge: 'border-amber-400/60 bg-amber-500/20 text-amber-300', glow: 'shadow-[0_0_18px_rgba(245,158,11,0.4)]' },
+  online: { badge: 'border-fuchsia-400/60 bg-fuchsia-500/20 text-fuchsia-300', glow: 'shadow-[0_0_18px_rgba(217,70,239,0.4)]' },
+};
+
 function channelsFrom(content) {
   return [
     { key: 'social', label: 'SOCIAL POSTS', Icon: Megaphone, items: content.social_posts },
@@ -129,25 +140,29 @@ export default function MarketingMission({ content, accepted, busy, generating, 
         <p className="mt-1.5 text-sm font-semibold leading-relaxed text-foreground">{content.core_message}</p>
       </div>
 
-      <div className="space-y-2.5">
+      <div className="space-y-5 pt-1">
         {channels.map((c) => {
           const isOpen = expanded === c.key;
           const on = isSelected(c.key);
+          const accent = CHANNEL_ACCENTS[c.key] || CHANNEL_ACCENTS.social;
           return (
             <div
               key={c.key}
-              className={`rounded-xl border p-3.5 transition ${
+              className={`relative rounded-xl border p-3.5 transition ${
                 on ? 'border-primary/50 bg-brand-gradient-soft' : 'border-white/10 bg-white/[0.02]'
               }`}
             >
-              <div className="flex items-center gap-3">
-                <div
-                  className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border ${
-                    on ? 'border-primary/50 text-primary' : 'border-white/15 text-foreground/70'
-                  }`}
-                >
-                  <c.Icon className="h-5 w-5" />
-                </div>
+              {/* ASSET BADGE — larger high-contrast icon popping over the card's
+                  top-left frame edge, in its own accent with a restrained glow. */}
+              <span
+                aria-hidden="true"
+                className={`absolute -top-3.5 left-4 z-10 flex h-11 w-11 items-center justify-center rounded-xl border-2 transition ${
+                  accent.badge
+                } ${on ? accent.glow : 'opacity-80'}`}
+              >
+                <c.Icon className="h-6 w-6" strokeWidth={2.5} />
+              </span>
+              <div className="flex items-center gap-3 pl-16">
                 <div className="min-w-0 flex-1">
                   <span className="font-mono text-xs font-bold tracking-wider text-foreground">{c.label}</span>
                   <p className="mt-0.5 text-[11px] text-muted-foreground">
