@@ -11,8 +11,15 @@ const MODEL_RESUME = '6ab1b8eb9cf3fd53f4e0865b';
 const MODEL_COPY = '6ab1b8eb9cf3fd53f4e08682';
 const MODEL_DECK = '6ab1b8eb9cf3fd53f4e08681';
 
+// PRODUCTION KILL SWITCH — the isolated QA environment is already seeded.
+// The endpoint refuses everything while disabled, BEFORE any read or write,
+// so it can never reset or rewrite data in production. Flip ENABLED to true
+// only when the QA account needs reseeding.
+const ENABLED = false;
+
 export default async function(req) {
   try {
+    if (!ENABLED) return Response.json({ error: 'QA seeding is disabled.' }, { status: 403 });
     const base44 = createClientFromRequest(req);
     const user = await base44.auth.me();
     if (!user) return Response.json({ error: 'Unauthorized' }, { status: 401 });
