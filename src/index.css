@@ -59,6 +59,21 @@
   50% { transform: translateY(-2px); }
 }
 
+/* NEON HUSTLE sprite-sheet playback: a horizontal strip shown through
+   stepped background positions — pure CSS (no JS timers) and pixel-exact
+   frame boundaries at any container size. --sheet-steps = frames - 1. */
+.sprite-sheet {
+  background-repeat: no-repeat;
+  animation: sprite-sheet-play var(--sheet-duration, 0.5s) steps(var(--sheet-steps, 3), end) infinite;
+}
+@keyframes sprite-sheet-play {
+  from { background-position-x: 0%; }
+  to { background-position-x: 100%; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .sprite-sheet { animation: none; }
+}
+
 @layer utilities {
   .text-gradient {
     background-image: linear-gradient(120deg, #a855f7 0%, #ec4899 50%, #f97316 100%);

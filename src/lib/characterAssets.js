@@ -56,3 +56,35 @@ export function getCharacterAsset(identity, pose = 'idle') {
   if (!MANIFEST_ACTIVE || !identity || !POSES.includes(pose)) return null;
   return assetPath(identity, pose);
 }
+
+// ============================================================
+// ANIMATED SPRITE SHEETS — one horizontal strip per animation.
+// Flag-gated exactly like the static library: keep false until the real
+// sheets are uploaded. Every sheet is backed by its static pose fallback.
+// ============================================================
+
+export const MANIFEST_ANIMATIONS_ACTIVE = false; // flip to true ONLY after all sheets are uploaded
+
+// Frame counts and playback speed per animation. All frames are SPRITE_FRAME
+// (48x48), laid out left-to-right, contiguous. The app enforces the fps —
+// sheets carry no timing metadata. Frame 0 must match the static pose file,
+// and the last frame must loop seamlessly back into frame 0.
+export const ANIMATIONS = {
+  idle: { frames: 4, fps: 6 },
+  walk_up: { frames: 4, fps: 8 },
+  walk_down: { frames: 4, fps: 8 },
+  walk_left: { frames: 4, fps: 8 },
+  walk_right: { frames: 4, fps: 8 },
+  victory: { frames: 6, fps: 10 },
+};
+
+export function animationSheetPath(identity, pose) {
+  return `${BASE}/${identity}/${pose}.sheet.png`;
+}
+
+// Resolves an animation, or null — callers fall back to the static pose.
+export function getCharacterAnimation(identity, pose = 'idle') {
+  const spec = ANIMATIONS[pose];
+  if (!MANIFEST_ANIMATIONS_ACTIVE || !identity || !spec) return null;
+  return { url: animationSheetPath(identity, pose), ...spec };
+}

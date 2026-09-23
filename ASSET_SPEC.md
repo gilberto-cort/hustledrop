@@ -15,7 +15,7 @@ keeps rendering its current artwork everywhere.
 - Author each pose at the exact frame size below — the renderer scales only
   in integer multiples, so art must start at the source size.
 
-## 1. Characters — 12 identities × 7 poses = 84 files
+## 1. Characters — 12 identities × (7 static poses + 6 animated sheets)
 
 Identity key = `<dna_type>_<variant>`:
 
@@ -46,16 +46,54 @@ Poses per identity:
 **Upload location (exact paths):**
 
 ```
-public/assets/characters/<identity_key>/<pose>.png
+public/assets/characters/<identity_key>/<pose>.png         (static poses)
+public/assets/characters/<identity_key>/<pose>.sheet.png   (animated sheets)
 ```
 
-Example: `public/assets/characters/hustler_female/victory.png`
+Example: `public/assets/characters/hustler_female/victory.png`,
+`public/assets/characters/hustler_male/walk_left.sheet.png`
 
-**Activation:** after all 84 files exist, set
-`MANIFEST_ACTIVE = true` in `src/lib/characterAssets.js`.
+**Activation:** after all 84 static files exist, set
+`MANIFEST_ACTIVE = true` in `src/lib/characterAssets.js`. After all 72
+sheets exist, additionally set `MANIFEST_ANIMATIONS_ACTIVE = true` (same
+file). Static poses always remain the fallback — a missing or broken sheet
+is covered by its static pose, which is covered by the Avatar record's own
+artwork.
 The entire app (DNA, Match, Build, Launch, Grow) switches to the library
-through the shared SpriteDisplay → CharacterSprite path; the artwork stored
-on each Avatar record remains the automatic fallback for any missing slot.
+through the shared SpriteDisplay → CharacterSprite path.
+
+### 1a. Animated sprite sheets — 6 per identity
+
+One horizontal strip per animation — **idle, walk_up, walk_down, walk_left,
+walk_right, victory**:
+
+| Sheet               | Frames | Frame size | Sheet canvas | Playback |
+|---------------------|--------|------------|--------------|----------|
+| idle.sheet.png      | 4      | 48×48      | 192×48       | 6 fps    |
+| walk_up.sheet.png   | 4      | 48×48      | 192×48       | 8 fps    |
+| walk_down.sheet.png | 4      | 48×48      | 192×48       | 8 fps    |
+| walk_left.sheet.png | 4      | 48×48      | 192×48       | 8 fps    |
+| walk_right.sheet.png| 4      | 48×48      | 192×48       | 8 fps    |
+| victory.sheet.png   | 6      | 48×48      | 288×48       | 10 fps   |
+
+Sheet layout & format rules:
+
+- Single row, frames laid out **left-to-right, contiguous** — no gaps,
+  padding, margins, labels or frame numbers anywhere on the sheet.
+- PNG-24, **true transparent background**; the character stays inside the
+  48×48 frame bounds (feet on the frame's bottom edge for idle/walk).
+- **Frame 0 of each sheet must match its static pose file** — the app shows
+  exactly that frame when animation is off or reduced motion is requested.
+- **Seamless loop**: the last frame must flow visually back into frame 0
+  (walks cycle contact–pass–contact; victory settles back to frame 0).
+- Playback speed above is enforced by the app — sheets carry no timing
+  metadata, and duplicate frames must not be used to slow a cycle down.
+- Same Digital Builder style standard, outlines, palette and accents as the
+  static poses; the character stays visually identical between static and
+  sheet.
+
+Total per identity: 7 static poses + 6 animated sheets.
+Full set: 84 static files + 72 sheet files = 156 files.
 
 ## 2. City districts — 5 districts × 3 states = 15 files
 

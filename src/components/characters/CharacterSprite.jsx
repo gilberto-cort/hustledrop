@@ -1,18 +1,21 @@
 import React, { useEffect, useState } from 'react';
-import { getCharacterAsset, SPRITE_FRAME, PORTRAIT_FRAME } from '@/lib/characterAssets';
+import { getCharacterAsset, getCharacterAnimation, SPRITE_FRAME, PORTRAIT_FRAME } from '@/lib/characterAssets';
 
 // ============================================================
 // CHARACTER SPRITE — pixel-perfect renderer for the NEON HUSTLE library.
 //
-//  - Resolution: <pose> asset, then the identity's idle asset, then nothing
-//    (the caller shows its labelled fallback). A missing file never breaks
-//    a page.
+//  - Resolution: animated sheet (once MANIFEST_ANIMATIONS_ACTIVE and the
+//    sheets are uploaded), then the static <pose> asset, then the identity's
+//    idle asset, then nothing (the caller shows its labelled fallback).
+//    A missing file never breaks a page.
 //  - Pixel-perfect: `scale` renders the source frame at an exact integer
 //    multiple (scale 3 → 144px for a 48px sprite) — no blurry CSS scaling.
 //    Without `scale` it fills its container with object-contain + pixelated.
-//  - Animation: pure CSS (a 2px steps() bob on the idle pose) — no cumulative
-//    JS timers to drift. Static fallback when `animated` is false; all
-//    motion disabled under prefers-reduced-motion.
+//  - Animation: sprite sheets play through pure CSS steps() over the
+//    background position — no cumulative JS timers, and frame boundaries
+//    stay pixel-exact at any container size. Frozen on frame 0 (which
+//    matches the static pose) under prefers-reduced-motion or when
+//    `animated` is false.
 // ============================================================
 export default function CharacterSprite({
   identity,
@@ -23,6 +26,7 @@ export default function CharacterSprite({
   className = '',
   boxClassName = '',
 }) {
+  const anim = animated ? getCharacterAnimation(identity, pose) : null;
   const poseUrl = getCharacterAsset(identity, pose);
   const idleUrl = pose !== 'idle' ? getCharacterAsset(identity, 'idle') : null;
   const [failed, setFailed] = useState(false);
@@ -30,18 +34,39 @@ export default function CharacterSprite({
   // Reset the failure flag whenever the underlying asset changes.
   useEffect(() => {
     setFailed(false);
-  }, [poseUrl, idleUrl]);
-
-  const url = poseUrl || idleUrl;
-  if (!url || failed) return null;
+  }, [anim && anim.url, poseUrl, idleUrl]);
 
   const frame = pose === 'portrait' ? PORTRAIT_FRAME : SPRITE_FRAME;
   const fixed = Number.isInteger(scale) && scale > 0;
   const boxStyle = fixed ? { width: frame * scale, height: frame * scale } : undefined;
+  const sizing = fixed ? '' : 'h-full w-full';
+
+  // Animated sheet — percentage-based background math works at any container
+  // size; steps() keeps frame boundaries pixel-exact.
+  if (anim) {
+    return (
+      <div
+        role="img"
+        aria-label={alt || (identity ? `${identity} — ${pose}` : 'character animation')}
+        style={{
+          ...boxStyle,
+          backgroundImage: `url(${anim.url})`,
+          backgroundSize: `${anim.frames * 100}% 100%`,
+          '--sheet-steps': anim.frames - 1,
+          '--sheet-duration': `${(anim.frames - 1) / anim.fps}s`,
+        }}
+        className={`pixelated sprite-sheet ${sizing} ${boxClassName}`}
+      />
+    );
+  }
+
+  // Static pose
+  const url = poseUrl || idleUrl;
+  if (!url || failed) return null;
 
   return (
     <div
-      className={`flex items-center justify-center ${fixed ? '' : 'h-full w-full'} ${boxClassName}`}
+      className={`flex items-center justify-center ${sizing} ${boxClassName}`}
       style={boxStyle}
     >
       <img
