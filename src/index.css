@@ -54,6 +54,11 @@
   }
 }
 
+@keyframes sprite-bob {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-2px); }
+}
+
 @layer utilities {
   .text-gradient {
     background-image: linear-gradient(120deg, #a855f7 0%, #ec4899 50%, #f97316 100%);

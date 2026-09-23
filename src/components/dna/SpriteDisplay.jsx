@@ -1,17 +1,36 @@
 import React from 'react';
 import { Image } from '@/components/ui/image';
+import CharacterSprite from '@/components/characters/CharacterSprite';
 import { DNA_TYPES } from '@/lib/dnaDisplay';
+import { identityFromAvatar, getCharacterAsset } from '@/lib/characterAssets';
 
-// Sprite container for the official HustleDrop pixel-art assets.
+// Single render path for the user's character across the whole app (DNA,
+// Match, Build, Launch, Grow). Resolution order:
+//   1. NEON HUSTLE library asset — once MANIFEST_ACTIVE is true and the
+//      artwork is uploaded (identity comes from the user's own Avatar
+//      selection; never inferred from the profile)
+//   2. The Avatar record's current sprite artwork — unchanged until then
+//   3. The labelled DNA-monogram placeholder
 // Artwork: transparent PNG/WebP rendered with object-fit CONTAIN — characters
 // are never cropped. Pixel edges are preserved (no blur, no aggressive
-// upscaling). Until the official asset is assigned, a polished DNA-monogram
-// token is shown — no developer placeholder text in the production UI.
-export default function SpriteDisplay({ avatar, size = 'md' }) {
+// upscaling).
+export default function SpriteDisplay({ avatar, size = 'md', pose = 'idle' }) {
   const meta = DNA_TYPES[avatar?.dna_type] || {};
   const slot = `${meta.code || '?'}-${avatar?.presentation === 'feminine' ? 'F' : 'M'}`;
   const box = size === 'lg' ? 'h-36 w-36' : size === 'sm' ? 'h-14 w-14' : 'h-24 w-24';
 
+  // 1 — official asset library (inactive until real artwork is uploaded)
+  const identity = identityFromAvatar(avatar);
+  const manifestUrl = getCharacterAsset(identity, pose) || getCharacterAsset(identity, 'idle');
+  if (manifestUrl) {
+    return (
+      <div className={`${box} overflow-hidden rounded-lg border-2 border-white/20 bg-white/[0.03]`}>
+        <CharacterSprite identity={identity} pose={pose} alt={avatar.display_name || slot} />
+      </div>
+    );
+  }
+
+  // 2 — current artwork on the Avatar record
   if (avatar?.sprite_asset) {
     return (
       <div className={`${box} overflow-hidden rounded-lg border-2 border-white/20 bg-white/[0.03]`}>
@@ -25,6 +44,7 @@ export default function SpriteDisplay({ avatar, size = 'md' }) {
     );
   }
 
+  // 3 — labelled placeholder
   return (
     <div
       className={`${box} flex flex-col items-center justify-center rounded-lg border-2 bg-brand-gradient-soft text-center ${
