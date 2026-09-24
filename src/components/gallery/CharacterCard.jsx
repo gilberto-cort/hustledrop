@@ -1,6 +1,6 @@
 import React from 'react';
 import { Check } from 'lucide-react';
-import SpriteDisplay from '@/components/dna/SpriteDisplay';
+import GalleryPortrait from '@/components/gallery/GalleryPortrait';
 import { DNA_TYPES } from '@/lib/dnaDisplay';
 
 // One gallery tile — strictly view-only: tapping opens the detail dialog,
@@ -16,7 +16,7 @@ export default function CharacterCard({ avatar, selected, onOpen }) {
           : 'border-white/10 bg-white/[0.02] hover:border-white/25'
       }`}
     >
-      <SpriteDisplay avatar={avatar} size="lg" />
+      <GalleryPortrait avatar={avatar} size="lg" />
       <div className="mt-3 font-mono text-xs font-bold tracking-wider text-foreground">{meta.label || 'HUSTLE DNA'}</div>
       <div className="mt-0.5 font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
         {avatar.presentation}

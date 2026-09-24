@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Check } from 'lucide-react';
 import { Dialog, DialogContent } from '@/components/ui/dialog';
-import SpriteDisplay from '@/components/dna/SpriteDisplay';
+import GalleryPortrait from '@/components/gallery/GalleryPortrait';
 import { DNA_TYPES, archetypeIdentity, archetypeStrength } from '@/lib/dnaDisplay';
 
 // VIEW-ONLY character detail. Browsing never selects, unlocks or modifies
@@ -36,7 +36,7 @@ export default function CharacterDetailDialog({ type, presentation, avatars, sel
         </div>
 
         <div className="mt-4 flex justify-center">
-          <SpriteDisplay avatar={avatar} pose="portrait" size="lg" />
+          <GalleryPortrait avatar={avatar} size="lg" />
         </div>
 
         {/* Male / female preview toggle — preview only, never a selection */}
