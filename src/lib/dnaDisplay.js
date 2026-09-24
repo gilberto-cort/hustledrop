@@ -150,3 +150,26 @@ export function idealEnvironment(dna) {
   );
   return parts;
 }
+
+// ---------- Character gallery (display-only reuse of existing content) ----------
+
+// Signature strength token per archetype — mirrors the HustleDNA engine's
+// SIGNATURE_STRENGTHS table exactly. Nothing new is invented here.
+export const SIGNATURE_STRENGTHS = {
+  hustler: 'fast_mover',
+  digital_builder: 'systems_thinker',
+  creator: 'creative_differentiator',
+  connector: 'relationship_builder',
+  operator: 'organized_executor',
+  builder: 'practical_executor',
+};
+
+// Existing per-archetype identity statement (same text the DNA page shows).
+export function archetypeIdentity(type) {
+  return IDENTITY[type] || '';
+}
+
+export function archetypeStrength(type) {
+  const token = SIGNATURE_STRENGTHS[type];
+  return token ? STRENGTHS[token] : null;
+}

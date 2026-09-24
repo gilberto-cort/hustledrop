@@ -122,6 +122,14 @@ export default function HustleDNA() {
             </button>
           }
         />
+        <div className="flex justify-center">
+          <Link
+            to="/characters"
+            className="inline-flex items-center gap-1.5 rounded-full border border-white/15 px-5 py-2.5 text-xs font-semibold text-foreground transition hover:border-white/30"
+          >
+            VIEW ALL CHARACTERS <ArrowRight className="h-3.5 w-3.5" />
+          </Link>
+        </div>
       </div>
     );
   }
@@ -151,6 +159,15 @@ export default function HustleDNA() {
         selectedAvatarId={selectedAvatarId}
         onSelect={handleSelectAvatar}
       />
+
+      <div className="flex justify-center">
+        <Link
+          to="/characters"
+          className="inline-flex items-center gap-1.5 rounded-full border border-white/15 px-5 py-2.5 text-xs font-semibold text-foreground transition hover:border-white/30"
+        >
+          VIEW ALL CHARACTERS <ArrowRight className="h-3.5 w-3.5" />
+        </Link>
+      </div>
 
       <div className="flex flex-wrap justify-center gap-3">
         <Button onClick={handleShare} className="rounded-full bg-brand-gradient text-xs font-semibold text-white">
