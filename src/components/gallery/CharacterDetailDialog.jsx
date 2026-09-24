@@ -36,7 +36,7 @@ export default function CharacterDetailDialog({ type, presentation, avatars, sel
         </div>
 
         <div className="mt-4 flex justify-center">
-          <GalleryPortrait avatar={avatar} size="lg" />
+          <GalleryPortrait avatar={avatar} variant="card" />
         </div>
 
         {/* Male / female preview toggle — preview only, never a selection */}

@@ -1,21 +1,24 @@
 import React, { useEffect, useState } from 'react';
 import { Image } from '@/components/ui/image';
 import { DNA_TYPES } from '@/lib/dnaDisplay';
-import { identityFromAvatar, getGalleryPortrait } from '@/lib/characterAssets';
+import { identityFromAvatar, getGalleryPortrait, getGalleryCard } from '@/lib/characterAssets';
 
 // GALLERY PORTRAIT — Character Gallery artwork chain:
-//   1. The 16-bit gallery pack's gallery_portrait.png for the identity
+//   1. The approved gallery pack's artwork for the identity
+//      (variant="card" shows gallery_card.png, default shows
+//      gallery_portrait.png; card falls back to the portrait file)
 //   2. The Avatar record's approved artwork
 //   3. The labelled placeholder
 // Gallery artwork is deliberately SEPARATE from gameplay sprites (the
 // 48×48 manifest assets); gameplay animations stay disabled. View-only.
-export default function GalleryPortrait({ avatar, size = 'lg' }) {
+export default function GalleryPortrait({ avatar, size = 'lg', variant = 'portrait' }) {
   const meta = DNA_TYPES[avatar?.dna_type] || {};
   const slot = `${meta.code || '?'}-${avatar?.presentation === 'feminine' ? 'F' : 'M'}`;
-  const box = size === 'lg' ? 'h-36 w-36' : size === 'sm' ? 'h-14 w-14' : 'h-24 w-24';
+  const box = variant === 'card' ? 'h-56 w-28' : size === 'lg' ? 'h-36 w-36' : size === 'sm' ? 'h-14 w-14' : 'h-24 w-24';
 
   const identity = identityFromAvatar(avatar);
-  const galleryUrl = getGalleryPortrait(identity);
+  const galleryUrl =
+    (variant === 'card' ? getGalleryCard(identity) || getGalleryPortrait(identity) : getGalleryPortrait(identity));
   const [galleryFailed, setGalleryFailed] = useState(false);
   useEffect(() => {
     setGalleryFailed(false);

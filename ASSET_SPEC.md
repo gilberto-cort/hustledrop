@@ -95,10 +95,14 @@ Sheet layout & format rules:
 Total per identity: 7 static poses + 6 animated sheets.
 Full set: 84 static files + 72 sheet files = 156 files.
 
-## Gallery pack (delivered & active)
+## Gallery pack (APPROVED — active)
 
-`gallery_portrait.png` (232×369) and `gallery_card.png` (256×512) for all
-12 identities, unpacked to `public/assets/characters/<identity>/`. These are
+`gallery_portrait.png` (236×406 / 236×438) and `gallery_card.png` (256×512)
+for all 12 identities, unpacked to `public/assets/characters/<identity>/`.
+2026-09-24: replaced with the APPROVED gallery pack — locked original
+artwork for 11 identities plus the approved electric-drill builder_male
+replacement. The expanded character detail view shows gallery_card.png
+(full-card view), falling back to the portrait. All 12 verified on disk. These are
 GALLERY-ONLY assets — the Character Gallery shows gallery_portrait.png with
 the Avatar record's artwork as fallback. gallery_card.png is on disk,
 reserved for a future full-card view. Gameplay files (portrait.png,

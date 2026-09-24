@@ -80,6 +80,17 @@ export function getGalleryPortrait(identity) {
   return galleryPortraitPath(identity);
 }
 
+export function galleryCardPath(identity) {
+  return `${BASE}/${identity}/gallery_card.png`;
+}
+
+// Full character-card view (256×512) for expanded detail; falls back to the
+// portrait chain in the component if missing.
+export function getGalleryCard(identity) {
+  if (!GALLERY_ASSETS_ACTIVE || !identity) return null;
+  return galleryCardPath(identity);
+}
+
 // ============================================================
 // ANIMATED SPRITE SHEETS — one horizontal strip per animation.
 // Flag-gated exactly like the static library: keep false until the real
