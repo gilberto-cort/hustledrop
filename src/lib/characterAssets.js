@@ -116,9 +116,21 @@ export function animationSheetPath(identity, pose) {
   return `${BASE}/${identity}/${pose}.sheet.png`;
 }
 
+// Scoped enable — verified on disk (192×48 RGBA, 4 contiguous 48×48 frames,
+// frame 0 == idle.png) for exactly these identity/pose slots. Every other
+// identity and pose keeps its static artwork until its sheets land and are
+// verified; MANIFEST_ANIMATIONS_ACTIVE stays false.
+export const SCOPED_ANIMATIONS = {
+  digital_builder_male: ['idle'],
+  digital_builder_female: ['idle'],
+};
+
 // Resolves an animation, or null — callers fall back to the static pose.
 export function getCharacterAnimation(identity, pose = 'idle') {
   const spec = ANIMATIONS[pose];
-  if (!MANIFEST_ANIMATIONS_ACTIVE || !identity || !spec) return null;
+  if (!identity || !spec) return null;
+  const enabled = MANIFEST_ANIMATIONS_ACTIVE ||
+    (SCOPED_ANIMATIONS[identity] || []).includes(pose);
+  if (!enabled) return null;
   return { url: animationSheetPath(identity, pose), ...spec };
 }
