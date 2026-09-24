@@ -27,6 +27,9 @@ export default function SpritePreview() {
         <p className="mt-1 text-xs text-muted-foreground">
           Digital Builder pack — the only identities with verified sheets. All other characters keep their existing artwork.
         </p>
+        <p className="mt-2 rounded-lg border border-dashed border-white/15 p-2.5 text-center text-[10px] leading-relaxed text-muted-foreground">
+          The experimental 48×48 gameplay sprites are temporarily disabled — these frames fall back to the approved Avatar artwork. The verified sheets and animation code are preserved for future re-enable.
+        </p>
       </div>
       <div className="grid gap-3 sm:grid-cols-2">
         {IDENTITIES.map((c) => (

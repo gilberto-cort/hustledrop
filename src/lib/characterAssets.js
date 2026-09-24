@@ -32,9 +32,10 @@ export const PORTRAIT_FRAME = 96; // portrait
 
 const BASE = '/assets/characters';
 
-export const MANIFEST_ACTIVE = true; // Digital Builder pack uploaded & dimension-verified. Any
-// identity/pose without files on disk falls back to that Avatar record's
-// artwork — enable stays safe while the other packs land.
+export const MANIFEST_ACTIVE = false; // TEMPORARILY DISABLED — the experimental 48×48 Digital Builder
+// gameplay pack is shelved; every identity renders its existing approved
+// Avatar-record artwork. Infrastructure (paths, fallback chain, animation
+// code) is preserved — flip back to true to re-enable the pack.
 
 export const ALL_IDENTITIES = DNA_IDENTITY_TYPES.flatMap((t) => ['male', 'female'].map((p) => `${t}_${p}`));
 
@@ -116,14 +117,11 @@ export function animationSheetPath(identity, pose) {
   return `${BASE}/${identity}/${pose}.sheet.png`;
 }
 
-// Scoped enable — verified on disk (192×48 RGBA, 4 contiguous 48×48 frames,
-// frame 0 == idle.png) for exactly these identity/pose slots. Every other
-// identity and pose keeps its static artwork until its sheets land and are
-// verified; MANIFEST_ANIMATIONS_ACTIVE stays false.
-export const SCOPED_ANIMATIONS = {
-  digital_builder_male: ['idle'],
-  digital_builder_female: ['idle'],
-};
+// Scoped enable — sheets verified on disk (192×48 RGBA, 4 contiguous 48×48
+// frames, frame 0 == idle.png) for exactly these identity/pose slots. Both
+// entries are SHELVED WITH the experimental 48×48 pack above; restore them to
+// re-enable the two idle animations. MANIFEST_ANIMATIONS_ACTIVE stays false.
+export const SCOPED_ANIMATIONS = {};
 
 // Resolves an animation, or null — callers fall back to the static pose.
 export function getCharacterAnimation(identity, pose = 'idle') {
