@@ -32,7 +32,9 @@ export const PORTRAIT_FRAME = 96; // portrait
 
 const BASE = '/assets/characters';
 
-export const MANIFEST_ACTIVE = false; // flip to true ONLY after real assets are uploaded
+export const MANIFEST_ACTIVE = true; // Digital Builder pack uploaded & dimension-verified. Any
+// identity/pose without files on disk falls back to that Avatar record's
+// artwork — enable stays safe while the other packs land.
 
 export const ALL_IDENTITIES = DNA_IDENTITY_TYPES.flatMap((t) => ['male', 'female'].map((p) => `${t}_${p}`));
 

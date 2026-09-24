@@ -95,6 +95,22 @@ Sheet layout & format rules:
 Total per identity: 7 static poses + 6 animated sheets.
 Full set: 84 static files + 72 sheet files = 156 files.
 
+## Delivery status
+
+- **Delivered & active:** `digital_builder_male` and `digital_builder_female` —
+  `portrait.png` (96×96, cropped from the approved poster, OPAQUE square),
+  `idle.png` (48×48 RGBA prototype) and `idle.sheet.png` (192×48 RGBA,
+  4-frame 1px bob, frame 0 == idle.png). `MANIFEST_ACTIVE` is on; every
+  other identity and pose still renders its existing Avatar-record artwork.
+- **Delivered but NOT playing:** the two idle sheets. Sheets are background
+  images whose load failures can't be detected, so
+  `MANIFEST_ANIMATIONS_ACTIVE` must stay false until every identity has at
+  least the sheets the app uses — otherwise missing sheets render as empty
+  slots instead of falling back. Re-check when more packs land.
+- **Still missing:** all files for the other 10 identities, plus
+  `walk_up/walk_down/walk_left/walk_right/victory` (static + sheet) for
+  the two delivered ones.
+
 ## 2. City districts — 5 districts × 3 states = 15 files
 
 District keys: `crossroads`, `opportunity_alley`, `founders_row`,
