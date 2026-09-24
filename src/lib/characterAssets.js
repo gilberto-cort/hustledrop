@@ -61,6 +61,26 @@ export function getCharacterAsset(identity, pose = 'idle') {
 }
 
 // ============================================================
+// GALLERY PACK — 16-bit gallery portraits & cards, 12 identities.
+// GALLERY-ONLY artwork, deliberately separate from gameplay sprites: the
+// Character Gallery shows gallery_portrait.png (gallery_card.png sits on
+// disk for a future full-card view). Gameplay assets (portrait.png,
+// idle.png, animated sheets) are never overwritten. Callers fall back to
+// the Avatar record's own artwork if a gallery file is missing.
+// ============================================================
+
+export const GALLERY_ASSETS_ACTIVE = true; // all 12 gallery_portrait.png uploaded & dimension-verified
+
+export function galleryPortraitPath(identity) {
+  return `${BASE}/${identity}/gallery_portrait.png`;
+}
+
+export function getGalleryPortrait(identity) {
+  if (!GALLERY_ASSETS_ACTIVE || !identity) return null;
+  return galleryPortraitPath(identity);
+}
+
+// ============================================================
 // ANIMATED SPRITE SHEETS — one horizontal strip per animation.
 // Flag-gated exactly like the static library: keep false until the real
 // sheets are uploaded. Every sheet is backed by its static pose fallback.

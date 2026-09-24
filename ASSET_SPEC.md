@@ -95,6 +95,16 @@ Sheet layout & format rules:
 Total per identity: 7 static poses + 6 animated sheets.
 Full set: 84 static files + 72 sheet files = 156 files.
 
+## Gallery pack (delivered & active)
+
+`gallery_portrait.png` (232×369) and `gallery_card.png` (256×512) for all
+12 identities, unpacked to `public/assets/characters/<identity>/`. These are
+GALLERY-ONLY assets — the Character Gallery shows gallery_portrait.png with
+the Avatar record's artwork as fallback. gallery_card.png is on disk,
+reserved for a future full-card view. Gameplay files (portrait.png,
+idle.png, animated sheets) are never overwritten by gallery uploads.
+Wired via `GALLERY_ASSETS_ACTIVE` in `src/lib/characterAssets.js`.
+
 ## Delivery status
 
 - **Delivered & active:** `digital_builder_male` and `digital_builder_female` —
