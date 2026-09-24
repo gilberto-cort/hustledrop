@@ -10,6 +10,7 @@ const NAV = [
   { label: 'BUILD', path: '/build' },
   { label: 'LAUNCH', path: '/launch' },
   { label: 'GROW', path: '/grow' },
+  { label: 'CITY', path: '/city' },
 ];
 
 export default function AppLayout() {

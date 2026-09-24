@@ -33,6 +33,7 @@ import Avatars from '@/pages/admin/Avatars';
 import BuilderTester from '@/pages/admin/BuilderTester';
 import HustleDNA from '@/pages/HustleDNA';
 import CharacterGallery from '@/pages/CharacterGallery';
+import City from '@/pages/City';
 
 const AuthenticatedApp = () => {
   const { isLoadingAuth, isLoadingPublicSettings, authError, navigateToLogin } = useAuth();
@@ -73,6 +74,7 @@ const AuthenticatedApp = () => {
           <Route path="/results" element={<Results />} />
           <Route path="/hustledna" element={<HustleDNA />} />
           <Route path="/characters" element={<CharacterGallery />} />
+          <Route path="/city" element={<City />} />
           <Route path="/dashboard" element={<Dashboard />} />
           <Route path="/build" element={<RouteErrorBoundary><Build /></RouteErrorBoundary>} />
           <Route path="/launch" element={<Launch />} />

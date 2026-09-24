@@ -5,20 +5,19 @@ import { DISTRICTS, getDistrictAsset } from './districtManifest';
 // ============================================================
 // NEON HUSTLE CITY — reusable isometric city presentation.
 //
-// PREPARED BUT NOT ACTIVATED: this component is not mounted anywhere yet.
-// Mount it with states derived from existing records, e.g.:
-//   <CityMap
-//     states={deriveDistrictStates({ hasDna, hasSelection, buildComplete, launchComplete, growComplete })}
-//     onSelect={(key, state) => navigate(key)}
-//   />
-// Purely presentational — it persists nothing, grants nothing and invents no
-// progression; the district state comes entirely from the caller.
+// Mounted by the City page (/city) with states derived from existing records
+// via deriveDistrictStates. Purely presentational — it persists nothing,
+// grants nothing and invents no progression; the district state comes
+// entirely from the caller. Every district is selectable; locked districts
+// keep their dimmed styling but still open their (read-only) detail panel.
 // ============================================================
 
 function DistrictTile({ district, state, onSelect, offset }) {
   const [assetFailed, setAssetFailed] = useState(false);
   const asset = assetFailed ? null : getDistrictAsset(district.key, state);
-  const clickable = state !== 'locked' && !!onSelect;
+  // Every district is SELECTABLE (viewing is always allowed — it selects
+  // nothing and unlocks nothing); state only drives the visual treatment.
+  const clickable = !!onSelect;
   const Icon = district.icon;
   const label = `${district.name} — ${state}`;
 
@@ -32,7 +31,6 @@ function DistrictTile({ district, state, onSelect, offset }) {
       disabled={!clickable}
       onClick={clickable ? () => onSelect(district.key, state) : undefined}
       aria-label={label}
-      aria-disabled={!clickable}
       style={{ marginLeft: `${offset}%` }}
       className={`flex w-full max-w-xs items-center gap-3 rounded-xl border p-3 text-left transition motion-reduce:transition-none ${
         state === 'completed'

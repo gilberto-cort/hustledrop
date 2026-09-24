@@ -145,8 +145,10 @@ public/assets/city/<district_key>/<state>.png
 **Activation:** after the 15 tiles exist, set
 `CITY_ASSETS_ACTIVE = true` in `src/components/city/districtManifest.js`.
 Tiles render inside rotated 48px diamond frames, so keep key art centered
-with safe margins. `CityMap` is built but deliberately **not mounted on any
-route yet** — mounting it is a separate, explicit step after artwork lands.
+with safe margins. `CityMap` is now mounted on the City page (`/city`) —
+the map + district detail panels are live, with district states derived
+from existing records and no new progression. `CITY_ASSETS_ACTIVE` stays
+false, so tiles render their district icons until the 15 real tiles land.
 
 ## District states (existing behavior — nothing new invented)
 
