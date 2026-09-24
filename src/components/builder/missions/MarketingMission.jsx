@@ -148,21 +148,21 @@ export default function MarketingMission({ content, accepted, busy, generating, 
           return (
             <div
               key={c.key}
-              className={`relative rounded-xl border p-3.5 transition ${
+              className={`rounded-xl border p-3.5 transition ${
                 on ? 'border-primary/50 bg-brand-gradient-soft' : 'border-white/10 bg-white/[0.02]'
               }`}
             >
-              {/* ASSET BADGE — larger high-contrast icon popping over the card's
-                  top-left frame edge, in its own accent with a restrained glow. */}
-              <span
-                aria-hidden="true"
-                className={`absolute -top-3.5 left-4 z-10 flex h-11 w-11 items-center justify-center rounded-xl border-2 transition ${
-                  accent.badge
-                } ${on ? accent.glow : 'opacity-80'}`}
-              >
-                <c.Icon className="h-6 w-6" strokeWidth={2.5} />
-              </span>
-              <div className="flex items-center gap-3 pl-16">
+              {/* ASSET ROW — icon inside the card, aligned with the title and
+                  completion checkmark; PREVIEW sits below. No overlap. */}
+              <div className="flex items-center gap-3">
+                <span
+                  aria-hidden="true"
+                  className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border-2 transition ${
+                    accent.badge
+                  } ${on ? accent.glow : 'opacity-80'}`}
+                >
+                  <c.Icon className="h-6 w-6" strokeWidth={2.5} />
+                </span>
                 <div className="min-w-0 flex-1">
                   <span className="font-mono text-xs font-bold tracking-wider text-foreground">{c.label}</span>
                   <p className="mt-0.5 text-[11px] text-muted-foreground">
