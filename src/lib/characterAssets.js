@@ -10,8 +10,9 @@
 //      Avatar-record artwork exactly as today (zero visual change).
 //   2. Upload the real files to public/assets/characters/<identity>/<pose>.png
 //      (or host them on a stable CDN and change BASE below).
-//   3. Flip MANIFEST_ACTIVE to true — the whole app switches over at once,
-//      with the current artwork still available as the per-record fallback.
+//   3. Flip MANIFEST_ACTIVE to true — uploaded identities switch over; any
+//      slot still missing automatically keeps that Avatar record's current
+//      artwork, so replacements can be verified and integrated one at a time.
 // Never point entries at temporary AI-generation URLs.
 // ============================================================
 

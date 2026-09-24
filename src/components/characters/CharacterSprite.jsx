@@ -5,9 +5,12 @@ import { getCharacterAsset, getCharacterAnimation, SPRITE_FRAME, PORTRAIT_FRAME 
 // CHARACTER SPRITE — pixel-perfect renderer for the NEON HUSTLE library.
 //
 //  - Resolution: animated sheet (once MANIFEST_ANIMATIONS_ACTIVE and the
-//    sheets are uploaded), then the static <pose> asset, then the identity's
-//    idle asset, then nothing (the caller shows its labelled fallback).
-//    A missing file never breaks a page.
+//    sheets are uploaded), then the static <pose> asset, then the
+//    identity's idle asset, then the caller-supplied fallbackUrl (the
+//    Avatar record's current artwork), then nothing (the caller shows its
+//    labelled placeholder). A missing or failed file never breaks a page,
+//    so artwork can be verified and integrated incrementally — unfinished
+//    identities keep their existing artwork.
 //  - Pixel-perfect: `scale` renders the source frame at an exact integer
 //    multiple (scale 3 → 144px for a 48px sprite) — no blurry CSS scaling.
 //    Without `scale` it fills its container with object-contain + pixelated.
@@ -15,7 +18,9 @@ import { getCharacterAsset, getCharacterAnimation, SPRITE_FRAME, PORTRAIT_FRAME 
 //    background position — no cumulative JS timers, and frame boundaries
 //    stay pixel-exact at any container size. Frozen on frame 0 (which
 //    matches the static pose) under prefers-reduced-motion or when
-//    `animated` is false.
+//    `animated` is false. Sheet loading failures can't be detected on a
+//    background-image, so MANIFEST_ANIMATIONS_ACTIVE must stay false until
+//    the sheets are actually uploaded.
 // ============================================================
 export default function CharacterSprite({
   identity,
@@ -25,16 +30,23 @@ export default function CharacterSprite({
   alt,
   className = '',
   boxClassName = '',
+  fallbackUrl,
 }) {
   const anim = animated ? getCharacterAnimation(identity, pose) : null;
   const poseUrl = getCharacterAsset(identity, pose);
   const idleUrl = pose !== 'idle' ? getCharacterAsset(identity, 'idle') : null;
-  const [failed, setFailed] = useState(false);
+
+  // First candidate that hasn't failed to load wins — the Avatar record's
+  // current artwork is the last resort, keeping partial libraries safe.
+  const candidates = [poseUrl || idleUrl, fallbackUrl].filter(Boolean);
+  const [failedSrc, setFailedSrc] = useState(null);
 
   // Reset the failure flag whenever the underlying asset changes.
   useEffect(() => {
-    setFailed(false);
-  }, [anim && anim.url, poseUrl, idleUrl]);
+    setFailedSrc(null);
+  }, [anim && anim.url, poseUrl, idleUrl, fallbackUrl]);
+
+  const src = candidates.find((c) => c !== failedSrc) || null;
 
   const frame = pose === 'portrait' ? PORTRAIT_FRAME : SPRITE_FRAME;
   const fixed = Number.isInteger(scale) && scale > 0;
@@ -60,9 +72,7 @@ export default function CharacterSprite({
     );
   }
 
-  // Static pose
-  const url = poseUrl || idleUrl;
-  if (!url || failed) return null;
+  if (!src) return null;
 
   return (
     <div
@@ -70,9 +80,9 @@ export default function CharacterSprite({
       style={boxStyle}
     >
       <img
-        src={url}
+        src={src}
         alt={alt || (identity ? `${identity} — ${pose}` : 'character sprite')}
-        onError={() => setFailed(true)}
+        onError={() => setFailedSrc(src)}
         draggable={false}
         className={`pixelated h-full w-full ${fixed ? '' : 'object-contain'} ${
           animated && pose === 'idle'

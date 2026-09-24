@@ -8,7 +8,9 @@ import { identityFromAvatar, getCharacterAsset } from '@/lib/characterAssets';
 // Match, Build, Launch, Grow). Resolution order:
 //   1. NEON HUSTLE library asset — once MANIFEST_ACTIVE is true and the
 //      artwork is uploaded (identity comes from the user's own Avatar
-//      selection; never inferred from the profile)
+//      selection; never inferred from the profile). Any slot still missing
+//      falls back INSIDE CharacterSprite to the Avatar record's artwork,
+//      so identities can be replaced one at a time.
 //   2. The Avatar record's current sprite artwork — unchanged until then
 //   3. The labelled DNA-monogram placeholder
 // Artwork: transparent PNG/WebP rendered with object-fit CONTAIN — characters
@@ -25,7 +27,12 @@ export default function SpriteDisplay({ avatar, size = 'md', pose = 'idle' }) {
   if (manifestUrl) {
     return (
       <div className={`${box} overflow-hidden rounded-lg border-2 border-white/20 bg-white/[0.03]`}>
-        <CharacterSprite identity={identity} pose={pose} alt={avatar.display_name || slot} />
+        <CharacterSprite
+          identity={identity}
+          pose={pose}
+          alt={avatar.display_name || slot}
+          fallbackUrl={avatar.sprite_asset}
+        />
       </div>
     );
   }
